@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+
+# Real reports hold real billing data: keep them out of the public repository.
+/reports/
+
+# Generated output of the shipped example. Rerun generate.py to rebuild it.
+/examples/*/*.html
+/examples/*/*.pdf

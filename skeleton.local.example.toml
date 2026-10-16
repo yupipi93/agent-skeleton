@@ -1,0 +1,64 @@
+# skeleton.local.toml: your personal overrides (git-ignored).
+#
+#   cp skeleton.local.example.toml skeleton.local.toml
+#
+# Every key here overrides the same key in skeleton.toml. Tables are merged, so you
+# only write what differs. `bin/skeleton enable|disable` edits this file for you and
+# keeps your comments. Run `bin/skeleton init` after editing it by hand.
+
+# Narrow the tools you actually use. Generated files of the others are pruned.
+# tools = ["claude", "cursor"]
+
+[user]
+# name = "Ada"            # used by voice greetings and PR templates
+# language = "en"         # reply language hint; "es" also switches the default TTS voice
+
+[paths]
+# projects_dir = "~/code" # where `bin/skeleton projects add <name>` looks for repositories
+
+[bundles]
+# Turn whole bundles on or off. Private bundles under local/bundles/<name>/ are on by
+# default and can be turned off here too.
+# voice = true
+# terraform = false
+
+[skills]
+# Per-skill switch, overriding the bundle state:
+# "terraform-plan-review" = false
+#
+# Change how a skill is invoked (applied to a rendered copy, the kit file is untouched):
+#   "user"  = slash command only (disable-model-invocation: true)
+#   "model" = the agent may load it, it is hidden from the slash menu (user-invocable: false)
+#   "auto"  = both (removes either flag)
+# "loopify" = { invocation = "user" }
+# "plan-files" = { enabled = true, invocation = "auto" }
+
+[rules]
+# Per-rule switch, by file name without .md:
+# "no-broad-process-kill" = false
+
+[hooks]
+# Per-hook switch, by the hook id from the bundle's hooks.toml:
+# "voice-summary-stop" = false
+
+[overrides]
+# Replace a kit skill by your own fork (a folder with a SKILL.md). `~` is expanded.
+# "jira-tickets" = "~/my-skills/jira-tickets"
+
+[mcp]
+# Machine-specific settings for MCP servers declared in a bundle's mcp.toml, or a
+# brand new server of your own. Values may use ${VAR} (resolved by each tool) and
+# ${SKELETON_ROOT} (replaced by the absolute path of this checkout).
+# [mcp.my-server]
+# command = "~/.local/bin/my-mcp-server"
+# args = ["--stdio"]
+# env = { API_TOKEN = "${MY_API_TOKEN}" }
+# enabled = true
+
+[settings]
+# Extra keys deep-merged into the generated per-tool settings files.
+# Claude Code personal settings are better kept in .claude/settings.local.json.
+# [settings.claude]
+# plansDirectory = "docs/plans"
+# [settings.gemini.general]
+# defaultApprovalMode = "default"

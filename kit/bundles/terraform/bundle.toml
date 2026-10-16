@@ -1,0 +1,11 @@
+name = "terraform"
+title = "Terraform"
+emoji = "🏗️"
+description = "Terraform on GCP: plan review, import and state work, YAML-driven settings, IaC docs, and the apply approval gate."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = ["hashicorp/tap/terraform"]
+commands = ["terraform", "python3"]
+optional_commands = ["tflint", "jq"]
+config_files = []

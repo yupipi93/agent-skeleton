@@ -1,0 +1,11 @@
+name = "mac"
+title = "macOS setup"
+emoji = "🍎"
+description = "How to install, check and repair every dependency of the kit on macOS (Homebrew, Brewfile groups, auth logins)."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = []
+commands = []
+optional_commands = ["brew"]
+config_files = []

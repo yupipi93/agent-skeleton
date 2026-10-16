@@ -1,0 +1,11 @@
+name = "gcp"
+title = "Google Cloud"
+emoji = "☁️"
+description = "Google Cloud recipes: IAP impersonation, Cloud Run deploy checks, OAuth clients, Cloud SQL Data API, billing reports, identity routing."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = ["google-cloud-sdk"]
+commands = ["gcloud", "python3"]
+optional_commands = ["curl", "bq"]
+config_files = []

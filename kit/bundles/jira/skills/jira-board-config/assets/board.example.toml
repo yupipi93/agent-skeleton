@@ -1,0 +1,48 @@
+# Jira board config: copy to local/bundles/<your-bundle>/jira-boards/<KEY>.toml
+# (or ~/.config/agent-skeleton/jira-boards/<KEY>.toml) and fill in your values.
+# Read by agents through the jira-board-config skill. No secrets in this file.
+
+project = "PROJ"                  # project key (required)
+name = "Platform support"         # display name
+kind = "service_desk"             # software | service_desk
+
+issue_types = ["Task", "Bug", "Story", "Epic"]
+default_issue_type = "Task"
+public_comments = true            # requesters or customers read every comment
+comment_language = "en"           # match the requester when known
+
+# Service desk only: request type name -> id (jira-create.sh --request-type <id>).
+# The id shows in an issue's JSON under JIRA_REQUEST_TYPE_FIELD (usually customfield_10010).
+[request_types]
+"Email request" = "10"
+"Access request" = "11"
+
+[titles]
+format = "[{component}] {title}"  # omit the tag for cross-cutting work
+max_words = 6                     # words after the tag
+components = ["api", "web", "infra", "data"]
+
+[people]
+assignee = "me"                   # me | <accountId> | "" (Jira's default)
+reporter = "deduce"               # deduce | <accountId> | "" (the token owner)
+reporter_fallback = ""            # accountId used when deduction fails
+owners_file = "docs/OWNERS.md"    # module -> owner table, or a CODEOWNERS path
+
+[links]
+style = "portal"                  # browse | portal
+portal_id = "3"                   # /servicedesk/customer/portal/<id>
+
+[transitions]
+start = "In Progress"
+done = "Done"
+cancel = "Cancelled"              # never used to close work
+done_needs_hop = true             # Done is not reachable from To Do
+
+# Signals that route new work to this board (repos, products, clients, cloud projects).
+[routing]
+repos = ["platform-iac", "api-gateway"]
+keywords = ["platform", "gateway", "on-call"]
+
+# Optional: what to run after Done (a private skill or command), never a Jira worklog.
+[time_tracking]
+skill = ""

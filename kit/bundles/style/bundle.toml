@@ -1,0 +1,10 @@
+name = "style"
+title = "House style"
+emoji = "✒️"
+description = "Optional writing-style rules for generated text, starting with no em dash."
+version = "0.1.0"
+default_enabled = false
+requires = ["core"]
+brew = []
+commands = []
+config_files = []

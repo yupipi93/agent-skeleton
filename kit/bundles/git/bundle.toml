@@ -1,0 +1,11 @@
+name = "git"
+title = "Git and pull requests"
+emoji = "🌿"
+description = "Conventional commits, branch-first workflow, PRs on GitHub or Bitbucket with a full body, and isolated worktrees for project writes."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = ["git", "gh"]
+commands = ["git"]
+optional_commands = ["gh", "treehouse", "curl"]
+config_files = []

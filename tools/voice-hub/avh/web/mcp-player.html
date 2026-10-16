@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Voice note</title>
+<style>
+  :root { --bg: transparent; --card: #ffffff; --line: #e2dfd8; --text: #1c1d21; --muted: #6b6e76;
+          --accent: #d1603a; --ink: #fff; --wave: #cfcac0; color-scheme: light dark; }
+  @media (prefers-color-scheme: dark) {
+    :root { --card: #1b1d21; --line: #2d3036; --text: #eceef1; --muted: #9aa0aa; --accent: #ef8a63; --ink: #1b1209; --wave: #3c4048; }
+  }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
+  .head { display: grid; grid-template-columns: 36px minmax(0, 1fr); gap: 10px; align-items: center; }
+  .av { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; font-weight: 800; font-size: 12px; }
+  .t { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m { color: var(--muted); font-size: 12.5px; }
+  .sum { color: var(--muted); }
+  .wave { position: relative; height: 40px; cursor: pointer; }
+  .wave svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .bars { fill: var(--wave); } .done { fill: var(--accent); }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  .play { width: 44px; height: 44px; border-radius: 50%; border: 0; background: var(--accent); color: var(--ink); display: grid; place-items: center; }
+  .play svg { width: 22px; height: 22px; fill: currentColor; }
+  .skip { border: 0; background: none; padding: 6px; color: var(--muted); font-weight: 700; }
+  .sp { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 3px 9px; font-size: 12.5px; }
+  .sp[aria-pressed="true"] { background: var(--accent); color: var(--ink); border-color: transparent; font-weight: 700; }
+  .time { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12.5px; }
+  .link { color: var(--accent); background: none; border: 0; padding: 0; text-decoration: underline; font-size: 12.5px; }
+  .status { color: var(--muted); font-size: 12.5px; }
+  .i-pause { display: none; } .playing .i-pause { display: block; } .playing .i-play { display: none; }
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="status" id="status">Loading the note…</div>
+</div>
+<script>
+'use strict';
+const SPEEDS = [1, 1.25, 1.5, 1.75, 2, 2.5];
+let reqId = 0;
+const pending = new Map();
+let note = null, audio = null, speed = 1;
+try { speed = Number(localStorage.getItem('avh.speed')) || 1; } catch (e) {}
+
+function send(msg) { window.parent.postMessage(Object.assign({ jsonrpc: '2.0' }, msg), '*'); }
+function request(method, params) {
+  const id = ++reqId;
+  send({ id, method, params });
+  return new Promise((resolve, reject) => {
+    pending.set(id, { resolve, reject });
+    setTimeout(() => { if (pending.has(id)) { pending.delete(id); reject(new Error('timeout ' + method)); } }, 30000);
+  });
+}
+function notify(method, params) { send({ method, params }); }
+
+window.addEventListener('message', ev => {
+  const m = ev.data;
+  if (!m || m.jsonrpc !== '2.0') return;
+  if (m.id !== undefined && pending.has(m.id) && (m.result !== undefined || m.error)) {
+    const p = pending.get(m.id); pending.delete(m.id);
+    m.error ? p.reject(new Error(m.error.message)) : p.resolve(m.result);
+    return;
+  }
+  if (m.method === 'ui/notifications/tool-result') onResult(m.params || {});
+  else if (m.method === 'ui/resource-teardown') { if (audio) audio.pause(); send({ id: m.id, result: {} }); }
+  else if (m.id !== undefined && m.method) send({ id: m.id, result: {} });
+});
+
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function fmt(s) { s = Math.max(0, Math.floor(s || 0)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); }
+function fmtSpeed(x) { return String(x) + '×'; }
+function rate() { return Math.min(4, Math.max(1, speed / ((note && note.speech_rate) || 1))); }  // never slower than recorded
+function resize() { notify('ui/notifications/size-changed', { width: document.body.scrollWidth, height: document.body.scrollHeight }); }
+
+async function onResult(result) {
+  const sc = result.structuredContent || {};
+  note = sc.note;
+  if (!note) { document.getElementById('status').textContent = (result.content && result.content[0] && result.content[0].text) || 'No note.'; resize(); return; }
+  render();
+  try {
+    let offset = 0, parts = [], mime = 'audio/mpeg';
+    for (;;) {
+      const r = await request('tools/call', { name: 'voice_note_audio_chunk', arguments: { id: note.id, offset } });
+      const c = r.structuredContent || {};
+      if (!c.data) throw new Error('no data');
+      parts.push(c.data); mime = c.mime || mime;
+      if (c.next == null) break;
+      offset = c.next;
+    }
+    // Chunks are cut at multiples of 3 bytes, so their base64 concatenates cleanly.
+    audio.src = 'data:' + mime + ';base64,' + parts.join('');
+    audio.load();
+    document.getElementById('status').textContent = '';
+  } catch (e) {
+    document.getElementById('status').innerHTML = 'Could not load the audio here. <button class="link" id="open2">Open in Voice Hub</button>';
+    document.getElementById('open2').onclick = openHub;
+  }
+  resize();
+}
+
+function openHub() {
+  const url = (note.urls && (note.urls.local || note.urls.public)) || '';
+  if (url) request('ui/open-link', { url }).catch(() => {});
+}
+
+function render() {
+  const peaks = note.peaks && note.peaks.length ? note.peaks : new Array(80).fill(20);
+  const w = peaks.length * 3;
+  const bars = peaks.map((v, i) => { const h = Math.max(6, v); return `<rect x="${i * 3}" y="${(100 - h) / 2}" width="2" height="${h}" rx="1"/>`; }).join('');
+  document.getElementById('card').innerHTML = `
+    <div class="head"><span class="av" style="background:${esc(note.agent_color)}">${esc(note.agent_badge)}</span>
+      <div style="min-width:0"><div class="t">${esc(note.title || note.summary || 'Voice note')}</div>
+      <div class="m">${esc(note.agent_label || '')}${note.tag ? ' · ' + esc(note.tag) : ''} · ${fmt(note.duration)}</div></div></div>
+    ${note.summary && note.title ? `<div class="sum">${esc(note.summary)}</div>` : ''}
+    <div class="wave" id="wave"><svg viewBox="0 0 ${w} 100" preserveAspectRatio="none"><g class="bars">${bars}</g></svg>
+      <svg viewBox="0 0 ${w} 100" preserveAspectRatio="none" id="done" style="clip-path: inset(0 100% 0 0)"><g class="done">${bars}</g></svg></div>
+    <div class="row" id="ctl">
+      <button class="play" id="play" aria-label="Play"><svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z"/></svg><svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
+      <button class="skip" id="back" aria-label="Back 10 seconds">-10</button>
+      <button class="skip" id="fwd" aria-label="Forward 30 seconds">+30</button>
+      ${SPEEDS.map(x => `<button class="sp" data-s="${x}" aria-pressed="${x === speed}">${fmtSpeed(x)}</button>`).join('')}
+      <span class="time" id="time">0:00 / ${fmt(note.duration)}</span>
+    </div>
+    <div class="row"><span class="status" id="status">Loading audio…</span><button class="link" id="open" style="margin-left:auto">Open in Voice Hub</button></div>
+    <audio id="audio" preload="auto"></audio>`;
+  audio = document.getElementById('audio');
+  const ctl = document.getElementById('ctl');
+  document.getElementById('play').onclick = () => { audio.paused ? audio.play().catch(() => {}) : audio.pause(); };
+  document.getElementById('back').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 10); };
+  document.getElementById('fwd').onclick = () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 30); };
+  document.getElementById('open').onclick = openHub;
+  document.getElementById('wave').onclick = e => {
+    const r = e.currentTarget.getBoundingClientRect();
+    if (isFinite(audio.duration)) audio.currentTime = (e.clientX - r.left) / r.width * audio.duration;
+  };
+  for (const b of document.querySelectorAll('.sp')) b.onclick = () => {
+    speed = Number(b.dataset.s);
+    try { localStorage.setItem('avh.speed', speed); } catch (e) {}
+    for (const x of document.querySelectorAll('.sp')) x.setAttribute('aria-pressed', String(Number(x.dataset.s) === speed));
+    audio.defaultPlaybackRate = audio.playbackRate = rate();
+  };
+  audio.addEventListener('loadedmetadata', () => { audio.defaultPlaybackRate = audio.playbackRate = rate(); });
+  audio.addEventListener('play', () => ctl.classList.add('playing'));
+  audio.addEventListener('pause', () => ctl.classList.remove('playing'));
+  audio.addEventListener('timeupdate', () => {
+    const d = audio.duration || note.duration || 1;
+    document.getElementById('done').style.clipPath = `inset(0 ${(100 - audio.currentTime / d * 100).toFixed(2)}% 0 0)`;
+    document.getElementById('time').textContent = fmt(audio.currentTime) + ' / ' + fmt(d);
+    if (audio.currentTime / d > 0.95 && !note._heard) {
+      note._heard = true;
+      request('tools/call', { name: 'voice_note_mark_heard', arguments: { id: note.id } }).catch(() => {});
+    }
+  });
+  resize();
+}
+
+(async () => {
+  try {
+    await request('ui/initialize', {
+      protocolVersion: '2026-01-26',
+      appCapabilities: {}, capabilities: {},
+      clientInfo: { name: 'agent-voice-hub-player', version: '1' },
+      appInfo: { name: 'agent-voice-hub-player', version: '1' },
+    });
+  } catch (e) { /* some hosts answer late; keep listening */ }
+  notify('ui/notifications/initialized', {});
+  new ResizeObserver(resize).observe(document.body);
+})();
+</script>
+</body>
+</html>

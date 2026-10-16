@@ -1,0 +1,11 @@
+name = "docs"
+title = "Docs and diagrams"
+emoji = "📝"
+description = "Mermaid diagrams, print-ready HTML to PDF, Markdown to PDF, plan-to-docs, and copy-paste-ready rich chat messages."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = ["google-chrome"]
+commands = []
+optional_commands = ["node"]
+config_files = []

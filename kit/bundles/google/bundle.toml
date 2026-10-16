@@ -1,0 +1,10 @@
+name = "google"
+title = "Google Workspace"
+emoji = "📬"
+description = "Agent access to Google Chat, Google Docs and Gmail (read-only) through your own OAuth client."
+version = "0.1.0"
+default_enabled = false
+requires = ["core"]
+brew = []
+commands = ["python3"]
+config_files = ["~/.config/agent-skeleton/google/client.json"]

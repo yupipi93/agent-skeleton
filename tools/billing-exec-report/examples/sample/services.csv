@@ -1,0 +1,12 @@
+Service description,Service ID,Subtotal ($),List cost ($),Negotiated savings ($)
+Compute Engine,1111-2222-3333,"1,204.50","1,204.50",0.00
+Vertex AI,2222-3333-4444,655.40,689.90,-34.50
+Cloud SQL,3333-4444-5555,412.30,412.30,0.00
+Cloud Storage,4444-5555-6666,310.25,310.25,0.00
+Cloud Run,5555-6666-7777,188.75,188.75,0.00
+Networking,6666-7777-8888,96.40,96.40,0.00
+BigQuery,7777-8888-9999,88.10,88.10,0.00
+Cloud Build,8888-9999-0000,22.60,22.60,0.00
+Artifact Registry,9999-0000-1111,14.80,14.80,0.00
+Secret Manager,0000-1111-2222,4.20,4.20,0.00
+,Filtered total,"2,997.30",,

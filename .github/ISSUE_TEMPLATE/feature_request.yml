@@ -1,0 +1,44 @@
+name: Feature request
+description: A new bundle, skill, rule, hook, tool mapping or CLI improvement.
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What do you or your agents struggle with today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: What should the kit do? Which bundle would it belong to?
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - New bundle
+        - New or better skill
+        - New rule or safety gate
+        - Hook
+        - MCP server
+        - Tool support (Claude Code, Cursor, Gemini CLI, Antigravity)
+        - CLI (bin/skeleton)
+        - Docs
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you submit
+      options:
+        - label: It works without new dependencies, or the dependency is optional and listed in the Brewfile.
+        - label: It needs no personal or company-specific data (that belongs in a private bundle under local/bundles/).

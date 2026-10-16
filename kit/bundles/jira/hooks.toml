@@ -1,0 +1,18 @@
+# Hooks of the jira bundle. Rendered per tool by `bin/skeleton init`.
+
+[[hook]]
+id = "jira-forms-context"
+event = "prompt_submit"
+run = "scripts/jira-forms-context.sh"
+timeout_s = 20
+tools = ["claude", "gemini"]
+description = "Adds the Attached forms of Jira keys in the prompt as untrusted context"
+
+[[hook]]
+id = "jira-mcp-text-guard"
+event = "before_tool"
+run = "scripts/jira-mcp-guard.sh"
+timeout_s = 10
+match = { mcp = ".*([Aa]tlassian|[Jj]ira).*" }
+fail_closed = true
+description = "Blocks secrets in Atlassian / Jira MCP tool calls"

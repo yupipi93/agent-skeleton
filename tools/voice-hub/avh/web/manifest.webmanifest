@@ -1,0 +1,21 @@
+{
+  "name": "Agent Voice Hub",
+  "short_name": "Voice Hub",
+  "description": "History and player for the spoken summaries your agents send",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121316",
+  "theme_color": "#d1603a",
+  "lang": "en",
+  "icons": [
+    { "src": "/static/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/static/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Unheard", "url": "/?status=unheard" }
+  ]
+}

@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="t d">
+<title id="t">agent-skeleton architecture</title>
+<desc id="d">Sources (kit bundles, tool config templates, skeleton.toml, skeleton.local.toml, local private bundles) feed bin/skeleton init, which loads, resolves, plans and applies, generating native files for Claude Code, Cursor, Gemini CLI and Antigravity. AGENTS.md is the one shared instructions file.</desc>
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#121826"/><stop offset="1" stop-color="#1b2236"/></linearGradient>
+<linearGradient id="core" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d2440"/><stop offset="1" stop-color="#151b2e"/></linearGradient>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#6b7896"/></marker>
+<style>.sans{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}</style>
+</defs>
+<rect x="1" y="1" width="1278" height="718" rx="28" fill="url(#bg)" stroke="#2c3550" stroke-width="2"/>
+<g class="sans">
+<text x="34" y="54" font-size="28" font-weight="800" fill="#f3f5fa">How it works</text>
+<text x="232" y="54" font-size="18" fill="#8e99b3">One source of truth, rendered into each tool's native format.</text>
+<rect x="1173" y="38" width="73" height="20" rx="10" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="1210" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#fcd38a">generated</text>
+<rect x="1076" y="38" width="87" height="20" rx="10" fill="#232a3b" stroke="#55607a"/>
+<text x="1120" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#aab3c5">git-ignored</text>
+<rect x="993" y="38" width="73" height="20" rx="10" fill="#12382b" stroke="#34d399"/>
+<text x="1030" y="52" text-anchor="middle" font-size="11" font-weight="700" fill="#6ee7b7">committed</text>
+<text x="34" y="100" font-size="13" font-weight="700" fill="#6b7896" letter-spacing="1.5">SOURCES</text>
+<text x="434" y="100" font-size="13" font-weight="700" fill="#6b7896" letter-spacing="1.5">RENDER</text>
+<text x="864" y="100" font-size="13" font-weight="700" fill="#6b7896" letter-spacing="1.5">NATIVE CONFIG PER TOOL</text>
+<g transform="translate(34 116)">
+<rect width="320" height="120" rx="14" fill="#0f1420" stroke="#2c3550" stroke-width="1.5"/>
+<rect x="0" y="12" width="4" height="96" rx="2" fill="#f6b44b"/>
+<text x="20" y="28" class="mono" font-size="15" font-weight="700" fill="#f6b44b">kit/bundles/&lt;b&gt;/</text>
+<text x="20" y="51" font-size="13.5" fill="#c9d1e3">skills/&lt;s&gt;/SKILL.md</text>
+<text x="20" y="70" font-size="13.5" fill="#c9d1e3">rules/&lt;r&gt;.md (neutral)</text>
+<text x="20" y="89" font-size="13.5" fill="#c9d1e3">hooks.toml, mcp.toml</text>
+<text x="20" y="108" font-size="13.5" fill="#c9d1e3">scripts/, setup.sh</text>
+</g>
+<rect x="269" y="128" width="73" height="20" rx="10" fill="#12382b" stroke="#34d399"/>
+<text x="306" y="142" text-anchor="middle" font-size="11" font-weight="700" fill="#6ee7b7">committed</text>
+<g transform="translate(34 250)">
+<rect width="320" height="63" rx="14" fill="#0f1420" stroke="#2c3550" stroke-width="1.5"/>
+<rect x="0" y="12" width="4" height="39" rx="2" fill="#2dd4bf"/>
+<text x="20" y="28" class="mono" font-size="15" font-weight="700" fill="#2dd4bf">kit/tool-config/</text>
+<text x="20" y="51" font-size="13.5" fill="#c9d1e3">claude and gemini settings templates</text>
+</g>
+<rect x="269" y="262" width="73" height="20" rx="10" fill="#12382b" stroke="#34d399"/>
+<text x="306" y="276" text-anchor="middle" font-size="11" font-weight="700" fill="#6ee7b7">committed</text>
+<g transform="translate(34 327)">
+<rect width="320" height="63" rx="14" fill="#0f1420" stroke="#2c3550" stroke-width="1.5"/>
+<rect x="0" y="12" width="4" height="39" rx="2" fill="#60a5fa"/>
+<text x="20" y="28" class="mono" font-size="15" font-weight="700" fill="#60a5fa">skeleton.toml</text>
+<text x="20" y="51" font-size="13.5" fill="#c9d1e3">tools and bundle defaults</text>
+</g>
+<rect x="269" y="339" width="73" height="20" rx="10" fill="#12382b" stroke="#34d399"/>
+<text x="306" y="353" text-anchor="middle" font-size="11" font-weight="700" fill="#6ee7b7">committed</text>
+<g transform="translate(34 404)">
+<rect width="320" height="63" rx="14" fill="#0f1420" stroke="#2c3550" stroke-width="1.5"/>
+<rect x="0" y="12" width="4" height="39" rx="2" fill="#a78bfa"/>
+<text x="20" y="28" class="mono" font-size="15" font-weight="700" fill="#a78bfa">skeleton.local.toml</text>
+<text x="20" y="51" font-size="13.5" fill="#c9d1e3">your overrides: skills, forks, MCP</text>
+</g>
+<rect x="255" y="416" width="87" height="20" rx="10" fill="#232a3b" stroke="#55607a"/>
+<text x="298" y="430" text-anchor="middle" font-size="11" font-weight="700" fill="#aab3c5">git-ignored</text>
+<g transform="translate(34 481)">
+<rect width="320" height="63" rx="14" fill="#0f1420" stroke="#2c3550" stroke-width="1.5"/>
+<rect x="0" y="12" width="4" height="39" rx="2" fill="#94a3b8"/>
+<text x="20" y="28" class="mono" font-size="15" font-weight="700" fill="#94a3b8">local/bundles/&lt;b&gt;/</text>
+<text x="20" y="51" font-size="13.5" fill="#c9d1e3">private bundles, on by default</text>
+</g>
+<rect x="255" y="493" width="87" height="20" rx="10" fill="#232a3b" stroke="#55607a"/>
+<text x="298" y="507" text-anchor="middle" font-size="11" font-weight="700" fill="#aab3c5">git-ignored</text>
+<rect x="434" y="160" width="370" height="420" rx="20" fill="url(#core)" stroke="#f6b44b" stroke-width="2"/>
+<text x="458" y="202" class="mono" font-size="22" font-weight="700" fill="#f3f5fa">bin/skeleton <tspan fill="#f6b44b">init</tspan></text>
+<text x="458" y="226" font-size="13.5" fill="#8e99b3">one stdlib-only Python file, no install step</text>
+<g transform="translate(454 250)">
+<rect width="330" height="62" rx="12" fill="#0f1420" stroke="#2c3550"/>
+<circle cx="30" cy="31" r="15" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="30" y="36" text-anchor="middle" font-size="14" font-weight="800" fill="#fcd38a">1</text>
+<text x="58" y="27" font-size="16" font-weight="700" fill="#f3f5fa">Load</text>
+<text x="58" y="47" font-size="13" fill="#8e99b3">manifests merged, bundles parsed</text>
+</g>
+<g transform="translate(454 322)">
+<rect width="330" height="62" rx="12" fill="#0f1420" stroke="#2c3550"/>
+<circle cx="30" cy="31" r="15" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="30" y="36" text-anchor="middle" font-size="14" font-weight="800" fill="#fcd38a">2</text>
+<text x="58" y="27" font-size="16" font-weight="700" fill="#f3f5fa">Resolve</text>
+<text x="58" y="47" font-size="13" fill="#8e99b3">bundle, skill, rule, hook and MCP state</text>
+</g>
+<g transform="translate(454 394)">
+<rect width="330" height="62" rx="12" fill="#0f1420" stroke="#2c3550"/>
+<circle cx="30" cy="31" r="15" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="30" y="36" text-anchor="middle" font-size="14" font-weight="800" fill="#fcd38a">3</text>
+<text x="58" y="27" font-size="16" font-weight="700" fill="#f3f5fa">Plan</text>
+<text x="58" y="47" font-size="13" fill="#8e99b3">path to file or link, a pure function</text>
+</g>
+<g transform="translate(454 466)">
+<rect width="330" height="62" rx="12" fill="#0f1420" stroke="#2c3550"/>
+<circle cx="30" cy="31" r="15" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="30" y="36" text-anchor="middle" font-size="14" font-weight="800" fill="#fcd38a">4</text>
+<text x="58" y="27" font-size="16" font-weight="700" fill="#f3f5fa">Apply</text>
+<text x="58" y="47" font-size="13" fill="#8e99b3">write on change, prune, record manifest</text>
+</g>
+<text x="619.0" y="564" text-anchor="middle" font-size="13" fill="#8e99b3">idempotent, never writes into kit/ or local/</text>
+<path d="M 354 176 C 399 176, 389 370, 430 370" fill="none" stroke="#f6b44b" stroke-opacity="0.75" stroke-width="2"/>
+<path d="M 354 282 C 399 282, 389 370, 430 370" fill="none" stroke="#2dd4bf" stroke-opacity="0.75" stroke-width="2"/>
+<path d="M 354 358 C 399 358, 389 370, 430 370" fill="none" stroke="#60a5fa" stroke-opacity="0.75" stroke-width="2"/>
+<path d="M 354 436 C 399 436, 389 370, 430 370" fill="none" stroke="#a78bfa" stroke-opacity="0.75" stroke-width="2"/>
+<path d="M 354 512 C 399 512, 389 370, 430 370" fill="none" stroke="#94a3b8" stroke-opacity="0.75" stroke-width="2"/>
+<g transform="translate(864 116)">
+<rect width="382" height="104" rx="14" fill="#231a1a" stroke="#ff7a59" stroke-opacity="0.8" stroke-width="1.5"/>
+<circle cx="22" cy="24" r="7" fill="#ff7a59"/>
+<text x="38" y="30" font-size="17" font-weight="700" fill="#f3f5fa">Claude Code</text>
+<text x="20" y="56" class="mono" font-size="12" fill="#d7dcea">CLAUDE.md</text>
+<text x="20" y="75" class="mono" font-size="12" fill="#d7dcea">.claude/skills/</text>
+<text x="20" y="94" class="mono" font-size="12" fill="#d7dcea">.claude/rules/</text>
+<text x="198" y="56" class="mono" font-size="12" fill="#d7dcea">.claude/settings.json</text>
+<text x="198" y="75" class="mono" font-size="12" fill="#d7dcea">.mcp.json</text>
+</g>
+<rect x="1161" y="128" width="73" height="20" rx="10" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="1198" y="142" text-anchor="middle" font-size="11" font-weight="700" fill="#fcd38a">generated</text>
+<path d="M 804 370 C 834 370, 834 168, 860 168" fill="none" stroke="#ff7a59" stroke-opacity="0.8" stroke-width="2" marker-end="url(#arr)"/>
+<g transform="translate(864 232)">
+<rect width="382" height="104" rx="14" fill="#1c1f26" stroke="#e5e7eb" stroke-opacity="0.8" stroke-width="1.5"/>
+<circle cx="22" cy="24" r="7" fill="#e5e7eb"/>
+<text x="38" y="30" font-size="17" font-weight="700" fill="#f3f5fa">Cursor</text>
+<text x="20" y="56" class="mono" font-size="12" fill="#d7dcea">.cursor/rules/*.mdc</text>
+<text x="20" y="75" class="mono" font-size="12" fill="#d7dcea">.cursor/hooks.json</text>
+<text x="198" y="56" class="mono" font-size="12" fill="#d7dcea">.cursor/mcp.json</text>
+<text x="198" y="75" class="mono" font-size="12" fill="#d7dcea">.agents/skills/</text>
+</g>
+<rect x="1161" y="244" width="73" height="20" rx="10" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="1198" y="258" text-anchor="middle" font-size="11" font-weight="700" fill="#fcd38a">generated</text>
+<path d="M 804 370 C 834 370, 834 284, 860 284" fill="none" stroke="#e5e7eb" stroke-opacity="0.8" stroke-width="2" marker-end="url(#arr)"/>
+<g transform="translate(864 348)">
+<rect width="382" height="104" rx="14" fill="#16203a" stroke="#60a5fa" stroke-opacity="0.8" stroke-width="1.5"/>
+<circle cx="22" cy="24" r="7" fill="#60a5fa"/>
+<text x="38" y="30" font-size="17" font-weight="700" fill="#f3f5fa">Gemini CLI</text>
+<text x="20" y="56" class="mono" font-size="12" fill="#d7dcea">.gemini/settings.json</text>
+<text x="20" y="75" class="mono" font-size="12" fill="#d7dcea">.gemini/RULES.md</text>
+<text x="198" y="56" class="mono" font-size="12" fill="#d7dcea">.gemini/commands/</text>
+<text x="198" y="75" class="mono" font-size="12" fill="#d7dcea">.agents/skills/</text>
+</g>
+<rect x="1161" y="360" width="73" height="20" rx="10" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="1198" y="374" text-anchor="middle" font-size="11" font-weight="700" fill="#fcd38a">generated</text>
+<path d="M 804 370 C 834 370, 834 400, 860 400" fill="none" stroke="#60a5fa" stroke-opacity="0.8" stroke-width="2" marker-end="url(#arr)"/>
+<g transform="translate(864 464)">
+<rect width="382" height="104" rx="14" fill="#1f1a33" stroke="#a78bfa" stroke-opacity="0.8" stroke-width="1.5"/>
+<circle cx="22" cy="24" r="7" fill="#a78bfa"/>
+<text x="38" y="30" font-size="17" font-weight="700" fill="#f3f5fa">Antigravity</text>
+<text x="20" y="56" class="mono" font-size="12" fill="#d7dcea">.agents/skills/</text>
+<text x="20" y="75" class="mono" font-size="12" fill="#d7dcea">.agents/rules/</text>
+<text x="198" y="56" class="mono" font-size="12" fill="#d7dcea">.agents/hooks.json</text>
+<text x="198" y="75" class="mono" font-size="12" fill="#d7dcea">.agents/mcp_config.json</text>
+</g>
+<rect x="1161" y="476" width="73" height="20" rx="10" fill="#3a2a10" stroke="#f6b44b"/>
+<text x="1198" y="490" text-anchor="middle" font-size="11" font-weight="700" fill="#fcd38a">generated</text>
+<path d="M 804 370 C 834 370, 834 516, 860 516" fill="none" stroke="#a78bfa" stroke-opacity="0.8" stroke-width="2" marker-end="url(#arr)"/>
+<g transform="translate(34 620)">
+<rect width="1212" height="66" rx="16" fill="#0f1420" stroke="#34d399" stroke-width="1.5"/>
+<text x="22" y="30" class="mono" font-size="17" font-weight="700" fill="#6ee7b7">AGENTS.md</text>
+<text x="22" y="52" font-size="14" fill="#c9d1e3">The one shared instructions file. Every tool reads it: Claude Code through the generated CLAUDE.md, Gemini CLI through context.fileName.</text>
+</g>
+<rect x="1161" y="632" width="73" height="20" rx="10" fill="#12382b" stroke="#34d399"/>
+<text x="1198" y="646" text-anchor="middle" font-size="11" font-weight="700" fill="#6ee7b7">committed</text>
+</g>
+</svg>

@@ -1,0 +1,28 @@
+# agent-skeleton manifest (committed).
+# Personal changes go in skeleton.local.toml (git-ignored), which overrides any key here.
+# After editing either file, run: bin/skeleton init
+version = 1
+
+# Tools to render for. Valid: claude, cursor, gemini, antigravity.
+tools = ["claude", "cursor", "gemini", "antigravity"]
+
+[user]
+name = ""           # set it in skeleton.local.toml; used by voice greetings and PR templates
+language = "en"     # reply language hint (ISO 639-1) and default TTS language
+
+[paths]
+projects_dir = "~/code"   # where `bin/skeleton projects add <name>` looks for repositories
+
+# Bundle defaults. A bundle missing here falls back to default_enabled in its bundle.toml.
+[bundles]
+core = true
+git = true
+jira = true
+terraform = true
+gcp = true
+docs = true
+voice = false
+google = false
+loops = true
+mac = true
+style = false

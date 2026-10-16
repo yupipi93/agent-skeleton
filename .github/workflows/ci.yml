@@ -1,0 +1,47 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check-and-test:
+    name: check + test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Versions
+        run: |
+          python3 --version
+          bash --version | head -n 1
+          git --version
+
+      - name: Lint the kit
+        run: bin/skeleton --no-color check
+
+      - name: Render twice (idempotent)
+        run: |
+          bin/skeleton --no-color init
+          bin/skeleton --no-color init --check
+
+      - name: Test suite
+        run: bin/skeleton --no-color test

@@ -1,0 +1,11 @@
+name = "jira"
+title = "Jira"
+emoji = "🎫"
+description = "Read, create, comment on and move Jira tickets through REST scripts, with rich ADF text, forms context and an outbound text safety gate."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = []
+commands = ["curl", "python3"]
+optional_commands = []
+config_files = ["~/.config/agent-skeleton/atlassian.env"]

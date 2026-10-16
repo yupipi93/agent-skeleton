@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messages to send</title>
+<!--
+  SCAFFOLD for the chat-rich-message skill.
+
+  Fill in MSGS below: one entry per recipient. Everything else works as-is.
+
+  Rules that matter (see SKILL.md):
+    * Inside `body:` use ONLY <p> <b> <i> <ul>/<li> <a href> <br> and emoji.
+      No <table> (Teams mangles it), no images, no colors/fonts.
+    * `ctx:` is for the SENDER. It renders outside the copied node, so it can
+      never end up in the message.
+    * Link text should double as the identifier, so the message still makes
+      sense if the chat app strips links.
+    * Never publish this page on any hosting or share link: local file only.
+-->
+<style>
+  :root{
+    --ground:#F6F7F9; --panel:#fff; --panel-2:#EFF1F5;
+    --ink:#141A24; --text:#1B2431; --muted:#5C6879; --faint:#8792A3;
+    --line:#DDE2EA; --line-strong:#C6CEDA; --accent:#2563EB; --accent-soft:#2563EB14;
+    --good:#127A46; --warn:#9A6100;
+    --shadow:0 1px 2px #14203508, 0 4px 16px #1420350f;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--text);font-family:var(--sans);font-size:15px;line-height:1.6}
+  .wrap{max-width:980px;margin:0 auto;padding:36px 20px 70px}
+  a{color:var(--accent)}
+  code{font-family:var(--mono);font-size:.88em;background:var(--panel-2);border:1px solid var(--line);border-radius:4px;padding:1px 5px}
+  header{border-bottom:2px solid var(--ink);padding-bottom:18px;margin-bottom:22px}
+  h1{font-family:var(--mono);font-size:28px;font-weight:700;letter-spacing:-.02em;margin:0 0 10px;color:var(--ink)}
+  .lede{color:var(--muted);margin:0;max-width:70ch}
+  .howto{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:8px;padding:14px 16px;margin:18px 0 26px;box-shadow:var(--shadow)}
+  .howto p{margin:0 0 6px;font-size:14px}
+  .howto p:last-child{margin:0}
+  h2{font-family:var(--mono);font-size:12.5px;text-transform:uppercase;letter-spacing:.13em;margin:38px 0 14px;padding-bottom:8px;border-bottom:1px solid var(--line-strong);color:var(--ink)}
+  .card{background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:9px;box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
+  .card-head{padding:14px 17px 0}
+  .card-head h3{font-family:var(--mono);font-size:15px;margin:0;color:var(--ink)}
+  .card-head .em{font-family:var(--mono);font-size:11.5px;color:var(--accent);margin-top:3px}
+  .ctx{margin:11px 17px 0;padding:9px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:6px;font-size:12.6px;color:var(--muted)}
+  .ctx .lbl{font-family:var(--mono);font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);display:block;margin-bottom:3px}
+  .msg{margin:13px 17px 0}
+  .msg:last-of-type{margin-bottom:17px}
+  .bar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap}
+  .lbl2{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--faint)}
+  .btn{font-family:var(--mono);font-size:11px;padding:5px 11px;border-radius:6px;border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);cursor:pointer}
+  .btn:hover{background:var(--accent);color:#fff}
+  .btn.alt{border-color:var(--line-strong);background:var(--panel-2);color:var(--muted)}
+  .btn.done{background:var(--good)!important;border-color:var(--good)!important;color:#fff!important}
+  /* the copied region: plain and chat-like, nothing a paste would mangle */
+  .body{padding:14px 16px;background:#fff;border:1px solid var(--line);border-radius:7px;font-size:14px;line-height:1.55;color:#1B2431}
+  .body p{margin:0 0 10px}
+  .body p:last-child{margin:0}
+  .body ul{margin:0 0 10px;padding-left:22px}
+  .body li{margin-bottom:4px}
+  .attach{margin-top:6px;font-family:var(--mono);font-size:11px;color:var(--warn)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Messages to send</h1>
+    <p class="lede"><b>Copy rich</b> puts real links, bold and bullets on the clipboard, so the chat app keeps the formatting.</p>
+  </header>
+
+  <div class="howto">
+    <p><b>Copy rich</b> → paste with a normal <code>Ctrl+V</code>. Never “paste as plain text”: that strips the links.</p>
+    <p><b>Copy plain</b> is for WhatsApp / Telegram, which strip formatting anyway.</p>
+    <p>The grey box is context for you and is never copied.</p>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script>
+/* ── 1. FILL THIS IN ────────────────────────────────────────────────────────
+   group  : section heading (team, office, "" for a single flat list)
+   name   : recipient
+   email  : shown under the name (sender's reference)
+   ctx    : sender-only context, never copied
+   attach : optional file reminder under the message
+   body   : the message itself, paste-safe HTML only
+   Add a second body/attach pair when a follow-up message is sent separately.  */
+const MSGS = [
+  {
+    group: "Team A",
+    name: "Full Name",
+    email: "person@example.com",
+    ctx: "module-x <b>26.7 %</b> · module-y <b>no tests</b>",
+    msgs: [
+      { label: "Message 1: announcement",
+        attach: "📎 Attach the guide as PDF",
+        body: `
+<p>Hi Name,</p>
+<p>One line of context: what changed and why it matters to them.</p>
+<p><b>The lead fact, with the real number in bold.</b> One clause of nuance.</p>
+<ul>
+  <li>Specific point, with <b>the number</b> that makes it concrete.</li>
+  <li>The one action you want from them.</li>
+</ul>
+<p><b>Your links</b></p>
+<ul>
+  <li><a href="https://example.com/thing">identifier-as-display-text</a></li>
+</ul>
+<p>Guide with more detail: <a href="https://example.com/guide">Guide name</a></p>` },
+      { label: "Message 2: follow-up",
+        attach: "📎 Attach report.html",
+        body: `<p>Second message, sent separately.</p>` },
+    ]
+  },
+];
+
+/* ── 2. Rendering + clipboard (no edits needed below) ───────────────────── */
+const groups = [...new Set(MSGS.map(m => m.group))];
+document.getElementById("out").innerHTML = groups.map(g => {
+  const list = MSGS.filter(m => m.group === g);
+  return (g ? `<h2>${g} <span style="color:var(--faint);font-size:11px">${list.length}</span></h2>` : "")
+   + list.map((d, i) => `
+    <article class="card">
+      <div class="card-head"><h3>${d.name}</h3><div class="em">${d.email || ""}</div></div>
+      ${d.ctx ? `<div class="ctx"><span class="lbl">Context for you, never copied</span>${d.ctx}</div>` : ""}
+      ${d.msgs.map((m, j) => `
+        <div class="msg">
+          <div class="bar"><span class="lbl2">${m.label || "Message"}</span>
+            <span><button class="btn" data-t="m-${groups.indexOf(g)}-${i}-${j}">Copy rich</button>
+            <button class="btn alt" data-t="m-${groups.indexOf(g)}-${i}-${j}" data-plain="1">Copy plain</button></span>
+          </div>
+          <div class="body" id="m-${groups.indexOf(g)}-${i}-${j}">${m.body}</div>
+          ${m.attach ? `<div class="attach">${m.attach}</div>` : ""}
+        </div>`).join("")}
+    </article>`).join("");
+}).join("");
+
+function flash(b){const o=b.textContent;b.textContent="✓ Copied";b.classList.add("done");
+  setTimeout(()=>{b.textContent=o;b.classList.remove("done")},1500);}
+
+/* Plain fallback: URLs written out in full, bullets as "- ". */
+function toPlain(node){
+  const out=[];
+  node.childNodes.forEach(n=>{
+    if(n.nodeName==="P"){
+      let t=n.textContent.trim();
+      n.querySelectorAll("a").forEach(a=>{ t=t.replace(a.textContent,`${a.textContent} (${a.href})`); });
+      out.push(t);
+    } else if(n.nodeName==="UL"||n.nodeName==="OL"){
+      n.querySelectorAll("li").forEach(li=>{
+        const a=li.querySelector("a");
+        out.push("- "+li.textContent.trim()+(a?`: ${a.href}`:""));
+      });
+    }
+  });
+  return out.join("\n\n");
+}
+
+/* Rich copy: select the RENDERED node so the browser puts BOTH text/html and
+   text/plain on the clipboard. execCommand is deliberate: navigator.clipboard
+   is not reliably available on file:// . */
+document.addEventListener("click", e => {
+  const b = e.target.closest(".btn"); if(!b) return;
+  const node = document.getElementById(b.dataset.t);
+  if(b.dataset.plain){
+    const ta=document.createElement("textarea");
+    ta.value=toPlain(node); ta.style.cssText="position:fixed;top:-9999px";
+    document.body.appendChild(ta); ta.select();
+    try{ document.execCommand("copy"); flash(b); }catch(_){ alert("Copy failed"); }
+    document.body.removeChild(ta); return;
+  }
+  const r=document.createRange(); r.selectNodeContents(node);
+  const sel=window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+  try{ document.execCommand("copy"); flash(b); }catch(_){ alert("Copy failed. Select the text manually."); }
+  sel.removeAllRanges();
+});
+</script>
+</body>
+</html>

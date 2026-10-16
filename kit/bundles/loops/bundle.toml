@@ -1,0 +1,10 @@
+name = "loops"
+title = "Loops"
+emoji = "🔁"
+description = "Loop engineering: turn one-shot prompts into small autonomous loops with discovery, verification, state and stop conditions."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = []
+commands = []
+config_files = []

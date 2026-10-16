@@ -1,0 +1,75 @@
+name: Bug report
+description: Something in the kit, the CLI or a bundle does not work as documented.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please never paste tokens, API keys or the content of
+        `~/.config/agent-skeleton/`. Security problems go through SECURITY.md, not here.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: One sentence. What is wrong?
+      placeholder: "`bin/skeleton init` prunes my own .claude/settings.local.json"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - bin/skeleton (init, list, enable/disable, doctor, check)
+        - install (install-mac.sh, Brewfile)
+        - core
+        - git
+        - jira
+        - terraform
+        - gcp
+        - docs
+        - voice or voice hub
+        - google
+        - loops
+        - mac
+        - style
+        - docs or README
+    validations:
+      required: true
+  - type: dropdown
+    id: tool
+    attributes:
+      label: AI tool
+      multiple: true
+      options:
+        - Claude Code
+        - Cursor
+        - Gemini CLI
+        - Antigravity
+        - Not tool specific
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. bin/skeleton enable voice
+        2. bin/skeleton init
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: doctor
+    attributes:
+      label: bin/skeleton doctor output
+      render: text
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "macOS 15.5, Python 3.12.7, Cursor 1.x"

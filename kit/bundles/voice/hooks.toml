@@ -1,0 +1,10 @@
+# Stop hook: long, complex or decision turns end with a voice summary.
+# Inert until a channel is configured (bin/skeleton setup voice). Turn it off with
+# `[hooks] voice-summary-stop = false` in skeleton.local.toml.
+[[hook]]
+id = "voice-summary-stop"
+event = "stop"
+run = "scripts/voice-note-hook.py"
+timeout_s = 20
+tools = ["claude", "cursor", "gemini", "antigravity"]
+description = "Require a spoken summary at the end of long, complex or decision turns"

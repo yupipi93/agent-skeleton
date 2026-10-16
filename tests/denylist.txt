@@ -1,0 +1,14 @@
+# Generic patterns that must never appear in tracked kit files (checked by
+# `bin/skeleton check`). One Python regex per line.
+#
+# Only generic shapes live here (home paths, real-looking email addresses).
+# Personal names, employers and client terms are checked by a release auditor that
+# runs outside the repo, so the list itself never has to name them.
+
+# Absolute home directories: write ~ or $HOME instead.
+/User[s]/[A-Za-z0-9._-]+
+/hom[e]/(?!linuxbrew\b)[A-Za-z0-9._-]+
+[A-Za-z]:\\User[s]\\
+
+# Email addresses outside the reserved example domains.
+[A-Za-z0-9._%+-]+@(?!(?:example\.(?:com|org|net)|users\.noreply\.github\.com|github\.com)\b)[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}

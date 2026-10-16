@@ -1,0 +1,11 @@
+name = "core"
+title = "Core"
+emoji = "🦴"
+description = "Workspace guide, skill authoring, plan files, README sync, the safety-gate rules and the shared script library."
+version = "0.1.0"
+default_enabled = true
+requires = []
+brew = ["git", "gh", "jq", "python@3.12", "ripgrep"]
+commands = ["git", "python3"]
+optional_commands = ["gh", "jq", "rg"]
+config_files = []
