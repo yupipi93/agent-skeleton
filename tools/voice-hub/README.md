@@ -6,14 +6,19 @@ Every note keeps its audio, its transcript, the text the agent wrote, which agen
 session produced it, and whether you have heard it. You play it at the speed you want,
 on this machine or, optionally, on your phone.
 
-It is the optional third channel of the kit's `voice` bundle: with `VOICE_HUB=on` in
-`~/.config/agent-skeleton/notify.env`, every note sent by
-`kit/bundles/voice/scripts/voice-note.py` is also stored here, and the script prints a
-player link the agent pastes into its reply.
+It is the **default destination** of the kit's `voice` bundle (`NOTIFY_CHANNELS=hub` in
+`~/.config/agent-skeleton/notify.env`): every note sent by
+`kit/bundles/voice/scripts/voice-note.py` is stored here, the script prints a player link
+the agent pastes into its reply, and the note starts playing, in a hub tab you already
+have open or in a new browser tab (`VOICE_HUB_OPEN=auto|always|never`). Telegram and
+Google Chat are opt-in extras of the bundle; nothing leaves the machine unless you list
+them. If the server is down, `voice-note.py` says so in one line, with the command that
+starts it, and exits 1.
 
 ```bash
-tools/voice-hub/bin/avh serve                 # run it in the foreground (http://127.0.0.1:7473)
-tools/voice-hub/bin/avh service install       # or as a login service (macOS launchd)
+tools/voice-hub/bin/avh service install       # a login service (macOS launchd), what setup offers
+tools/voice-hub/bin/avh serve                 # or in the foreground (http://127.0.0.1:7473)
+tools/voice-hub/bin/avh ping                  # is it up? exit 0 yes, 1 no (with the start command)
 tools/voice-hub/bin/avh open                  # open the hub in the browser
 tools/voice-hub/bin/avh list                  # recent notes, * = not heard yet
 tools/voice-hub/bin/avh doctor                # check every dependency, one line each
@@ -33,7 +38,10 @@ tools/voice-hub/bin/avh doctor                # check every dependency, one line
 - **Links that play.** `/n/<id>?play=1` (what agents paste) starts the note. If a hub
   tab is already open, the server hands the note to it before the new tab even loads,
   and the new tab closes itself. Otherwise the new tab plays, or asks for one tap when
-  the browser blocks sound.
+  the browser blocks sound. Scripts get the same hand-off without opening a tab:
+  `avh play <id>` asks an open hub tab to play the note and reports whether one did,
+  which is how `voice-note.py` decides between "it is already playing" and opening the
+  browser.
 - **A follow-along transcript.** The sentence being spoken is highlighted; tap any
   sentence to jump there. Timing is proportional to text length, labelled approximate.
 - **Who said it.** Each note records the agent and where it ran ("Claude Code in
@@ -54,8 +62,8 @@ tools/voice-hub/bin/avh doctor                # check every dependency, one line
 ```mermaid
 flowchart LR
   A[Agent] -->|voice-note.py| V[TTS + delivery]
-  V -->|avh add| S[(SQLite + MP3)]
-  V --> T[Telegram / Google Chat]
+  V -->|avh add, then avh play| S[(SQLite + MP3)]
+  V -.->|opt-in only| T[Telegram / Google Chat]
   S --> H[avh serve on 127.0.0.1:7473]
   H --> B[Browser on this machine]
   H -.->|optional Tailscale Serve| P[Phone PWA]
@@ -82,6 +90,8 @@ flowchart LR
 | `avh list [-n 20] [--unheard] [-q text] [--json]` | Recent notes |
 | `avh show ID` / `avh url ID\|last [--public]` | One note / its player URL |
 | `avh open [ID]` | Open the hub in the default browser |
+| `avh ping [--json]` | Is the server up? Exit 0 yes, 1 no (prints the command that starts it) |
+| `avh play ID\|last [--wait S] [--json]` | Ask an open hub tab to play a note; exit 0 played, 1 no open tab, 2 server down |
 | `avh service install [--tailnet]\|status\|restart\|uninstall` | macOS login service; `--tailnet` also runs Tailscale Serve |
 | `avh resynth ID... \| --all [--limit N] [--dry-run]` | Re-record notes at 1x (costs TTS characters; `--dry-run` counts them) |
 | `avh command add --code C [--label L] [--explanation E]` | Attach a command to this agent session's note (sent before or after it, within 30 min) |

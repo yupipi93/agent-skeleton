@@ -1,6 +1,6 @@
 ---
 name: notify
-description: "Push a text notification to the user (Telegram, Google Chat) with kit/bundles/voice/scripts/notify.sh: end of a long task, an incident, a result, a command to run, a blocking decision. Also the both-places rule for commands. Use whenever the user should be told something away from the chat."
+description: "Text notifications with kit/bundles/voice/scripts/notify.sh: printed locally and attached to the voice hub by default, Telegram or Google Chat only when opted in. End of a long task, an incident, a result, a command to run, a blocking decision. Also the both-places rule for commands."
 ---
 
 # Text notifications
@@ -14,10 +14,20 @@ kit/bundles/voice/scripts/notify.sh --source ACTION warn "Apply needs your appro
 `notify.sh [--source TAG] [--code CMD | --code-only CMD] [--to CHANNELS] [--dry-run]
 [--quiet] <info|ok|warn|crit> <title> <message...>`
 
-Channels come from `~/.config/agent-skeleton/notify.env` (`NOTIFY_CHANNELS`: `telegram`,
-`chat`, a comma list, `auto` or `none`). With nothing configured the script is a silent
-no-op that exits 0: an emitter never breaks for a missing config. Exit 0 sent, 3 partial,
-1 nothing delivered. Log: `~/.local/state/agent-skeleton/notify.log`.
+Channels come from `~/.config/agent-skeleton/notify.env` (`NOTIFY_CHANNELS`, a comma list
+of `hub`, `telegram`, `chat`, or `none`; default `hub`, and `auto` means `hub`):
+
+- **`hub`** (default): the message is printed here, and a `--code` / `--code-only` command
+  is attached to this agent session's note in the local voice hub, shown first with a
+  copy button. The hub stores voice notes, not text, so pair the notification with a
+  voice note when the user is away (skill `voice-summary`).
+- **`telegram`, `chat`**: opt-in. Used only when listed (`NOTIFY_CHANNELS=hub,telegram`)
+  and configured, or with `--to` when the user asked for that channel. Never add them on
+  your own.
+
+With `none` (or an opted-in channel missing its credentials) the script is a silent no-op
+that exits 0: an emitter never breaks for a missing config. Exit 0 sent, 3 partial, 1
+nothing delivered. Log: `~/.local/state/agent-skeleton/notify.log`.
 
 The spoken half of this channel is the skill `voice-summary`. A long or complex turn gets
 both: the audio carries the explanation, this carries the text and the command.
@@ -25,8 +35,8 @@ both: the audio carries the explanation, this carries the text and the command.
 ## The rule before every other one: a command goes to both places
 
 Every command the user might run must be one-click copyable in **both** places: the
-notification channel (`--code` or `--code-only`) **and** a fenced bash block in your chat
-reply. Never a sentence describing the command instead of the command. `notify.sh` prints
+notification channel (`--code` or `--code-only`; with the hub, the copy button in the
+note) **and** a fenced bash block in your chat reply. Never a sentence describing the command instead of the command. `notify.sh` prints
 the ready-made fenced block on stderr whenever it sends a command, as a reminder.
 
 - `--code-only CMD` sends the command as its own message right after the explanation: on
@@ -54,7 +64,7 @@ line boundary. If Telegram rejects the formatting, the message is retried as pla
 
 ## Before sending text outside the machine
 
-Notifications leave the machine. Do not put secrets, tokens, internal hostnames or
+With Telegram or Google Chat opted in, notifications leave the machine. Do not put secrets, tokens, internal hostnames or
 customer data in them; when in doubt run `kit/bundles/core/scripts/text-guard.sh --file
 <draft>` first.
 
@@ -62,5 +72,6 @@ customer data in them; when in doubt run `kit/bundles/core/scripts/text-guard.sh
 
 ```bash
 kit/bundles/voice/scripts/notify.sh --dry-run --source GCP ok "T" "body"   # renders, sends nothing
+kit/bundles/voice/scripts/notify.sh --dry-run --to hub,telegram,chat ok "T" "b"  # preview each channel
 kit/bundles/voice/scripts/notify.sh --test                                 # showcase to the real channels
 ```

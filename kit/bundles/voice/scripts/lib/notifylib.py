@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
 """notifylib: configuration, channels and text notifications for the voice bundle.
 
+Channels: `hub` (the local voice hub in tools/voice-hub, the default), and two external
+ones that stay off until the user lists them: `telegram` and `chat` (Google Chat).
+
 One module, three users, so the config is parsed one way and every channel is sent one way:
 
   * kit/bundles/voice/scripts/voice-note.py imports it (spoken summaries);
@@ -66,9 +69,10 @@ GCHAT_PY = os.environ.get("GCHAT_PY") or os.path.join(
 HUB_CLI_DEFAULT = os.path.join(KIT_ROOT, "tools", "voice-hub", "bin", "avh")
 
 DEFAULTS = {
-    # Channels: telegram, chat, a comma list of both, none, or auto (every channel that
-    # has its credentials filled in).
-    "NOTIFY_CHANNELS": "auto",
+    # Channels: a comma list of hub, telegram and chat, or none. The default is the local
+    # voice hub only; `auto` means the same. Telegram and Google Chat are used only when
+    # listed here (or with --to), and only once their credentials are filled in.
+    "NOTIFY_CHANNELS": "hub",
     "TELEGRAM_BOT_TOKEN": "",
     "TELEGRAM_CHAT_ID": "",
     # Google Chat: an incoming webhook posts text and cards (no OAuth); a space plus the
@@ -88,8 +92,13 @@ DEFAULTS = {
     "VOICE_GREETING": "",
     "VOICE_USER_NAME": "",
     "VOICE_SPEAKERS_FILE": os.path.join(CONFIG_DIR, "speakers.json"),
-    "VOICE_HUB": "off",
+    # The hub channel's kill switch (off removes `hub` from every list), its CLI, and what
+    # happens after a note is stored: auto plays it in an open hub tab, else opens the
+    # player in the browser; always opens the browser; never only prints the link.
+    "VOICE_HUB": "on",
     "VOICE_HUB_CLI": "",
+    "VOICE_HUB_OPEN": "auto",
+    "VOICE_HUB_OPENER": "",
     "NOTIFY_TZ": "",
     # Stop hook thresholds and the phrase that skips it for one turn.
     "VOICE_HOOK_LONG_SECONDS": "240",
@@ -98,7 +107,8 @@ DEFAULTS = {
     "VOICE_HOOK_OPTOUT": "no audio",
 }
 SECRET_KEYS = ("TELEGRAM_BOT_TOKEN", "GCHAT_WEBHOOK_URL", "TTS_API_KEY")
-CHANNELS = ("telegram", "chat")
+CHANNELS = ("hub", "telegram", "chat")
+EXTERNAL = ("telegram", "chat")
 HTTP_TIMEOUT = 30
 TELEGRAM_TIMEOUT = 20
 
@@ -196,23 +206,35 @@ def chat_ready(cfg):
     return bool(cfg.get("GCHAT_WEBHOOK_URL") or cfg.get("GCHAT_SPACE"))
 
 
-def resolve_channels(cfg, override=None, warn=True):
-    """The text/audio channels to use, in a stable order, keeping only configured ones."""
-    raw = (override or cfg.get("NOTIFY_CHANNELS") or "auto").strip().lower()
+def resolve_channels(cfg, override=None, warn=True, ready_only=True):
+    """The channels to use, in a stable order.
+
+    `hub` (default, also what `auto` means) is the local voice hub; VOICE_HUB=off removes
+    it. `telegram` and `chat` are opt-in: used only when listed, and with ready_only only
+    once their credentials are set. `all` lists the hub plus every configured external
+    channel, an explicit opt-in. `none` is nothing."""
+    raw = (override or cfg.get("NOTIFY_CHANNELS") or "hub").strip().lower()
     if raw == "none":
         return []
-    ready = {"telegram": telegram_ready(cfg), "chat": chat_ready(cfg)}
-    if raw in ("auto", "all", "both"):
+    ready = {"hub": is_on(cfg.get("VOICE_HUB", "on")), "telegram": telegram_ready(cfg),
+             "chat": chat_ready(cfg)}
+    if raw == "auto":
+        raw = "hub"
+    if raw in ("all", "both"):
         return [c for c in CHANNELS if ready[c]]
     wanted = [c.strip() for c in raw.replace("+", ",").split(",") if c.strip()]
     out = []
     for name in wanted:
+        if name == "auto":
+            name = "hub"
         if name not in CHANNELS:
             if warn:
-                sys.stderr.write("notify: unknown channel %r ignored (telegram, chat, none)\n"
-                                 % name)
+                sys.stderr.write("notify: unknown channel %r ignored (hub, telegram, chat, "
+                                 "none)\n" % name)
             continue
-        if not ready[name]:
+        if name == "hub" and not ready["hub"]:
+            continue                 # VOICE_HUB=off: the user turned the hub off on purpose
+        if ready_only and not ready[name]:
             if warn:
                 sys.stderr.write("notify: channel %s is not configured in %s, skipped\n"
                                  % (name, config_file()))
@@ -230,9 +252,46 @@ def hub_on(cfg):
     return is_on(cfg.get("VOICE_HUB")) and os.path.exists(hub_cli(cfg))
 
 
+def hub_command(cfg):
+    """The hub CLI as the user would type it: repo-relative for the bundled one."""
+    path = hub_cli(cfg)
+    if os.path.realpath(path) == os.path.realpath(HUB_CLI_DEFAULT):
+        return "tools/voice-hub/bin/avh"
+    return path
+
+
+def hub_start_hint(cfg):
+    """The one command that starts the hub server on this platform."""
+    if sys.platform == "darwin":
+        return hub_command(cfg) + " service install"
+    return hub_command(cfg) + " serve"
+
+
+def hub_status(cfg, timeout=15):
+    """{"running": bool, "url", "players", "error"} from `avh ping --json`; never raises."""
+    if not os.path.exists(hub_cli(cfg)):
+        return {"running": False, "url": "", "players": 0,
+                "error": "the voice hub was not found at %s (set VOICE_HUB_CLI)" % hub_cli(cfg)}
+    try:
+        proc = subprocess.run([sys.executable, hub_cli(cfg), "ping", "--json"],
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
+        out = json.loads(proc.stdout.decode("utf-8") or "{}")
+    except Exception as exc:                                  # noqa: BLE001
+        return {"running": False, "url": "", "players": 0,
+                "error": "the voice hub CLI failed: %s" % str(exc)[:200]}
+    out.setdefault("players", 0)
+    if not out.get("running"):
+        out["error"] = "the voice hub is not running (%s); start it with: %s" % (
+            out.get("url") or "http://127.0.0.1:7473", hub_start_hint(cfg))
+    return out
+
+
 def configured(cfg):
-    """True when a note has somewhere to go: a channel, or the local hub."""
-    return bool(resolve_channels(cfg, warn=False)) or is_on(cfg.get("VOICE_HUB"))
+    """True once the bundle is set up (notify.env exists) and a note has somewhere to go.
+
+    A fresh install has no notify.env, so the Stop hook stays inert until
+    `bin/skeleton setup voice` writes one, even though the hub is the default channel."""
+    return os.path.exists(config_file()) and bool(resolve_channels(cfg, warn=False))
 
 
 def scrub(text, cfg):
@@ -508,6 +567,17 @@ def render_chat(level, source, title, body, code, cfg):
     return text
 
 
+def render_local(level, source, title, body, code):
+    """The plain-text copy printed on this machine (the hub channel's text half)."""
+    text = "%s %s %s · %s" % (LEVEL_ICON.get(level, "ℹ️"), icon_for(source), source.upper(),
+                              TAG_RE.sub("", title))
+    if body:
+        text += "\n" + TAG_RE.sub("", truncate_lines(body, BODY_MAX))
+    if code:
+        text += "\n$ " + code
+    return text
+
+
 def print_paste_block(code):
     """A command sent to a channel also belongs in the agent's chat reply: say so."""
     sys.stderr.write("\n--- ALSO PASTE THIS IN THE CHAT REPLY (a command goes to both places) ---\n")
@@ -565,7 +635,8 @@ TEST_BODY = ("Formatting check: <b>bold</b>, <i>italic</i>, <s>strike</s>, <code
 def notify_main(argv):
     p = argparse.ArgumentParser(
         prog="notify.sh",
-        description="Send a text notification to the configured channels (Telegram, Google Chat).")
+        description="Send a text notification: printed locally with commands attached to the "
+                    "voice hub (default), plus Telegram or Google Chat when opted in.")
     p.add_argument("level", nargs="?", choices=("info", "ok", "warn", "crit"))
     p.add_argument("title", nargs="?")
     p.add_argument("message", nargs="*")
@@ -574,7 +645,8 @@ def notify_main(argv):
     p.add_argument("--code", help="a command, inside this message as a copyable block")
     p.add_argument("--code-only", dest="code_only",
                    help="a command, as its own message right after this one")
-    p.add_argument("--to", help="channels for this call: telegram, chat or a comma list")
+    p.add_argument("--to", help="channels for this call: hub, telegram, chat, a comma list "
+                                 "or none")
     p.add_argument("--dry-run", action="store_true", help="render and print, send nothing")
     p.add_argument("--test", action="store_true", help="send a formatting showcase")
     p.add_argument("--quiet", action="store_true", help="no local echo")
@@ -594,13 +666,14 @@ def notify_main(argv):
     code = args.code or ""
 
     channels = resolve_channels(cfg, args.to, warn=not args.dry_run)
-    if args.dry_run and not channels:
-        channels = list(CHANNELS)
     for cmd in (code, code_only):
         if cmd:
             print_paste_block(cmd)
+    if args.dry_run:
+        # Show every channel the call names, configured or not: that is what a preview is for.
+        channels = resolve_channels(cfg, args.to, warn=False, ready_only=False)
     if not channels:
-        return 0                     # an emitter never breaks for a missing config
+        return 0                     # NOTIFY_CHANNELS=none: an emitter never breaks
 
     messages = []
     if level:
@@ -610,8 +683,14 @@ def notify_main(argv):
     if code_only:
         messages.append(('<pre><code class="language-bash">%s</code></pre>' % html_escape(code_only),
                          "```bash\n%s\n```" % code_only, False))
+    local = render_local(level, args.source, title, body, code) if level else ""
+    if code_only:
+        local = (local + "\n" if local else "") + "$ " + code_only
 
     if args.dry_run:
+        if "hub" in channels:
+            sys.stderr.write("DRY-RUN hub (printed here; a command attaches to this session's "
+                             "voice note)\n%s\n\n" % local)
         for tg, chat, loud in messages:
             if "telegram" in channels:
                 sys.stderr.write("DRY-RUN telegram (parse_mode=HTML, notify=%s)\n%s\n\n"
@@ -623,13 +702,23 @@ def notify_main(argv):
         return 0
 
     delivered, failures = set(), []
+    if "hub" in channels:
+        # The hub keeps voice notes, not text: the text is shown here, and a command is
+        # attached to this agent session's voice note (first, with a copy button).
+        if not args.quiet:
+            print(local)
+        delivered.add("local")
+        for cmd in (code, code_only):
+            if cmd and hub_on(cfg):
+                hub_attach_command(cfg, cmd, title, body)
+                delivered.add("hub")
+    external = [c for c in channels if c in EXTERNAL]
     for i, (tg, chat, loud) in enumerate(messages):
-        ok, bad = send_text(cfg, channels, tg, chat, loud=loud, mention=(i == 0))
+        if not external:
+            break
+        ok, bad = send_text(cfg, external, tg, chat, loud=loud, mention=(i == 0))
         delivered.update(ok)
         failures.extend(bad)
-    for cmd in (code, code_only):
-        if cmd:
-            hub_attach_command(cfg, cmd, title, body)
     append_log(notify_log(), "[%s] %s | %s | to=%s%s" % (
         level or "code", args.source, title[:80], ",".join(sorted(delivered)) or "-",
         (" failed=" + "; ".join(failures)) if failures else ""))
@@ -638,7 +727,7 @@ def notify_main(argv):
     if not delivered:
         sys.stderr.write("notify: FAILED, nothing delivered (log %s)\n" % notify_log())
         return 1
-    if not args.quiet:
+    if external and not args.quiet:
         print("notification sent to %s: [%s] %s / %s" % (
             "+".join(sorted(delivered)), level or "code", args.source, title))
     return 3 if failures else 0

@@ -13,10 +13,12 @@ A turn qualifies when any of these holds (thresholds from notify.env):
 
 A qualifying turn needs a voice-note.py call that really delivered: the call must be in
 the transcript and the voice log must show a "sent note" line written during the turn.
+A note stored in the local voice hub (the default channel) counts as delivered.
 When the log is missing or the turn start is unknown, the hook fails open.
 
 Ways out, on purpose, so the hook can never trap a session:
-  * inert when no channel is configured (no Telegram, no Google Chat, VOICE_HUB off);
+  * inert until the bundle is set up: no notify.env yet (bin/skeleton setup voice writes
+    it), or NOTIFY_CHANNELS=none, or no usable channel in it;
   * the user's message contains the opt-out phrase (VOICE_HOOK_OPTOUT, default "no audio");
   * after three blocks on the same turn it gives up;
   * any parsing problem lets the turn end.
@@ -349,8 +351,9 @@ def block_message(reasons):
         "hashes or ids aloud; they stay in the written reply, and a command also goes there "
         "as a fenced block. Pick the --source that matches the work (TERRAFORM, DEPLOY, GCP, "
         "DB, SECURITY, BILLING, DNS, JIRA, ACTION). If the script prints a 'Markdown:' hub "
-        "link, paste it into your reply. The user can skip this for one turn by writing "
-        "\"no audio\" in the message.")
+        "link, paste it into your reply. If it says the voice hub is not running, give the "
+        "user the start command it printed instead of retrying. The user can skip this for "
+        "one turn by writing \"no audio\" in the message.")
 
 
 def main():

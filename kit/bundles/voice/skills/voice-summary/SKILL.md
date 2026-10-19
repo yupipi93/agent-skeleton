@@ -1,6 +1,6 @@
 ---
 name: voice-summary
-description: "Send the user a spoken summary with kit/bundles/voice/scripts/voice-note.py (Telegram, Google Chat, local hub). Use after long or complex tasks, when a decision or command is needed, when the Stop hook asks for one, or when the user asks for an audio summary. Covers writing for the ear."
+description: "Send the user a spoken summary with kit/bundles/voice/scripts/voice-note.py (local voice hub by default; Telegram or Google Chat only if opted in). Use after long or complex tasks, when a decision or command is needed, when the Stop hook asks, or when asked for audio. Covers writing for the ear."
 ---
 
 # Voice summaries
@@ -32,9 +32,22 @@ floor: when the work mattered (something irreversible, a production change), sen
 if the hook stays quiet.
 
 The Stop hook `voice-summary-stop` enforces this in Claude Code, Cursor, Gemini CLI and
-Antigravity. It is inert until a channel is configured, lets the turn end after three
-refusals, and stands down for one turn when the user writes **"no audio"**
-(`VOICE_HOOK_OPTOUT`). A call counts only when the voice log shows a delivery.
+Antigravity. It is inert until the bundle is configured (`notify.env` exists), lets the
+turn end after three refusals, and stands down for one turn when the user writes
+**"no audio"** (`VOICE_HOOK_OPTOUT`). A call counts only when the voice log shows a
+delivery; a note stored in the hub is a delivery.
+
+## Where it goes
+
+By default the note goes to the **local voice hub** (`tools/voice-hub`, skill
+`voice-hub`) and nowhere else: it is stored, the player link is printed, and it is played
+(`VOICE_HUB_OPEN=auto`: an open hub tab takes it, else the link opens in the browser;
+`always` opens the browser; `never` only prints the link). Telegram and Google Chat are
+used only when the user opted in (`NOTIFY_CHANNELS=hub,telegram`) or you pass `--to` because
+the user asked for that channel. Never add `--to telegram` or `--to chat` on your own.
+
+If the hub server is down the script prints one line with the command that starts it and
+exits 1. Give the user that command; do not retry and do not switch channels.
 
 ## Writing for the ear
 
@@ -62,8 +75,8 @@ are in, `VOICE_USER_NAME`, and `--source`. A greeting you write anyway is droppe
 
 Audio is additive. A command the user must run goes to the notification channel with
 `kit/bundles/voice/scripts/notify.sh --code-only "<cmd>"` **and** into your reply as a
-fenced block (skill `notify`). With the hub on, also pass `--command "<cmd>"` (shown first
-in the note with a copy button) and `--brief "<one or two sentences>"`.
+fenced block (skill `notify`). Also pass `--command "<cmd>"` (shown first in the hub note
+with a copy button) and `--brief "<one or two sentences>"`.
 
 ## Flags
 
@@ -72,7 +85,8 @@ in the note with a copy button) and `--brief "<one or two sentences>"`.
 | `--source TAG` | `AGENT` (default), `TERRAFORM`, `DEPLOY`, `GCP`, `DB`, `SECURITY`, `BILLING`, `DNS`, `JIRA`, `ACTION` |
 | `--title T` | Caption shown with the audio |
 | `--lang en\|es` | Default `TTS_LANG` (then `[user] language`, then `en`) |
-| `--to telegram,chat\|none` | Channels for this call (default `NOTIFY_CHANNELS`) |
+| `--to hub,telegram,chat\|none` | Channels for this call (default `NOTIFY_CHANNELS`, `hub`); external ones only when the user asked |
+| `--open auto\|always\|never` | How the hub note is played (default `VOICE_HUB_OPEN`, `auto`) |
 | `--who`, `--tag`, `--greeting`, `--no-opener` | Override the introduction |
 | `--summary`, `--link URL`, `--command CMD`, `--brief B` | Extra fields for the hub |
 | `--file -` | Read the text from stdin |
@@ -84,7 +98,8 @@ in the note with a copy button) and `--brief "<one or two sentences>"`.
 
 - Exit 0: delivered. Exit 3: partial (some channel failed, or the audio failed and the
   text went out instead); **do not send it again**, report the failed part. Exit 1:
-  nothing delivered; say so in the reply.
+  nothing delivered (for example the hub is not running); say so in the reply, with the
+  start command the script printed.
 - If it prints `Markdown: [🎧 Listen: ...](http://127.0.0.1:7473/n/...)`, paste that line
   into your reply (skill `voice-hub`).
 - Log: `~/.local/state/agent-skeleton/voice.log`.
@@ -92,6 +107,7 @@ in the note with a copy button) and `--brief "<one or two sentences>"`.
 ## Engines and setup
 
 `TTS_ENGINE=auto` uses Google Cloud TTS (Chirp 3 HD voices) when `TTS_API_KEY` or
-`TTS_GCLOUD_ACCOUNT` is set, else the macOS `say` voice (free, offline), else sends text.
+`TTS_GCLOUD_ACCOUNT` is set, else the macOS `say` voice (free, offline). With no engine
+the hub has nothing to store (it keeps audio); opted-in external channels get the text.
 Setup: `bin/skeleton setup voice`; Google key: `kit/bundles/voice/scripts/tts-set-api-key.sh`.
 Details and troubleshooting: `docs/bundles/voice.md`.

@@ -48,7 +48,7 @@
 | 📝 | **docs** | One Mermaid house style with templates, print-ready HTML to PDF, rich-paste chat messages, and `/docs-plan-to-docs`. | ✅ on | [docs](docs/bundles/docs.md) |
 | 🔁 | **loops** | *Write loops, not prompts.* `/loopify` turns a prompt into a loop spec with a separate verifier, `STATE.md` and human gates. | ✅ on | [loops](docs/bundles/loops.md) |
 | 🍎 | **mac** | One command installs and checks everything: Brewfile groups per enabled bundle, then `init` and `doctor`. | ✅ on | [mac](docs/bundles/mac.md) |
-| 🎧 | **voice** | Agents that say who they are (*"Hi Ana, this is the payments agent, about Terraform."*), spoken summaries on Telegram or Google Chat, a Stop hook across all four tools, a local voice hub. | ⬜ off | [voice](docs/bundles/voice.md) |
+| 🎧 | **voice** | Agents that say who they are (*"Hi Ana, this is the payments agent, about Terraform."*), spoken summaries played in a local voice hub (Telegram or Google Chat if you opt in), a Stop hook across all four tools. | ⬜ off | [voice](docs/bundles/voice.md) |
 | 📬 | **google** | Google Chat, Docs and Gmail (read-only) as you, through your own OAuth client on a loopback login, tokens at mode 0600. | ⬜ off | [google](docs/bundles/google.md) |
 | ✒️ | **style** | Optional house style for generated text, starting with "no em dash". | ⬜ off | [style](docs/bundles/style.md) |
 | 🧩 | **your own** | Drop a private bundle in `local/bundles/<name>/` (same shape, git-ignored, on by default). | ✅ on | [customization](docs/customization.md#private-bundles-localbundlesb) |
@@ -326,10 +326,10 @@ Hook event mapping, rule formats and per-tool quirks: [tool support](docs/tool-s
 
 ## 🎧 Voice summaries
 
-<img src="docs/assets/voice.svg" alt="A voice note bubble with a 1.5x speed chip in a chat, an approval message with the command as text, and the local voice hub player with a follow-along transcript and a For you box" width="100%">
+<img src="docs/assets/voice.svg" alt="The local voice hub player, the default destination, with a follow-along transcript, a For you box with the command and a speed control; the agent reply with the Listen link; Telegram and Google Chat shown as optional, opt-in channels" width="100%">
 
-Turn on the `voice` bundle and long, complex or decision-shaped turns end with a note you
-can play away from the desk:
+Turn on the `voice` bundle and long, complex or decision-shaped turns end with a spoken
+note that starts playing on your machine:
 
 - **Agents say who they are.** The script, not the agent, writes the opening line from the
   repository you stand in: *"Hi Ana, this is the payments agent, about Terraform."* Several
@@ -338,14 +338,19 @@ can play away from the desk:
   and the command itself goes out as text you can copy.
 - **Free and offline** with the macOS `say` voice, or Google Chirp 3 HD voices with an API
   key (the free tier covers about a million characters a month). English or Spanish.
-- **Delivered to Telegram** (a voice bubble with a speed control) **or Google Chat**.
+- **Played in a local voice hub, by default.** A web player on 127.0.0.1: history, 1x to
+  2.5x, a live transcript, the command left for you with a copy button. A hub tab that is
+  already open plays the new note; otherwise it opens in your browser. Nothing leaves the
+  machine.
+- **Telegram and Google Chat, if you opt in.** Both still work (a voice bubble with a speed
+  control, a playable clip in Chat), and stay off until you list them:
+  `NOTIFY_CHANNELS=hub,telegram`.
 - **A Stop hook for all four tools** that will not let a qualifying turn end until a note
-  was actually delivered. Inert until you configure a channel; `no audio` skips one turn.
-- **A local voice hub** (optional): history, a 1x to 2.5x player with a live transcript,
-  an MCP inline player, and your phone over Tailscale if you want it.
+  was actually delivered. Inert until you run the setup; `no audio` skips one turn.
+- **Extras:** an MCP inline player, and your phone over Tailscale if you want it.
 
 ```bash
-bin/skeleton enable voice && bin/skeleton setup voice     # about ten minutes, once
+bin/skeleton enable voice && bin/skeleton setup voice     # about ten minutes, once: hub, voice, name
 ```
 
 Details: [voice](docs/bundles/voice.md) and [voice hub](tools/voice-hub/README.md).

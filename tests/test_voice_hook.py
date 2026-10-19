@@ -14,7 +14,7 @@ from tests.helpers import ROOT
 
 HOOK = ROOT / "kit/bundles/voice/scripts/voice-note-hook.py"
 CONFIG_KEYS = ("NOTIFY_CHANNELS", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "GCHAT_WEBHOOK_URL",
-               "GCHAT_SPACE", "VOICE_HUB", "VOICE_HOOK_LONG_SECONDS", "VOICE_HOOK_TOOL_CALLS",
+               "GCHAT_SPACE", "VOICE_HUB", "VOICE_HUB_OPEN", "VOICE_HUB_CLI", "VOICE_HOOK_LONG_SECONDS", "VOICE_HOOK_TOOL_CALLS",
                "VOICE_HOOK_REPLY_CHARS", "VOICE_HOOK_OPTOUT", "TTS_ENGINE")
 T0 = datetime.datetime(2026, 1, 5, 9, 0, 0, tzinfo=datetime.timezone.utc)
 
@@ -137,20 +137,35 @@ class HookTest(unittest.TestCase):
         path = self.t("strike.jsonl", "apply it", 20, 1500, minutes=9)
         self.assertEqual([self.code(path, "s-strike") for _ in range(4)], [2, 2, 2, 0])
 
-    def test_inert_without_a_channel(self):
-        empty = self.tmp / "empty.env"
-        empty.write_text("NOTIFY_CHANNELS=auto\nTELEGRAM_BOT_TOKEN=1:x\nTELEGRAM_CHAT_ID=\n")
+    def test_inert_until_the_bundle_is_configured(self):
         path = self.t("inert.jsonl", "apply it", 20, 1500, minutes=9)
-        self.assertEqual(self.code(path, "s-inert", conf=empty), 0)
+        # No notify.env yet: a new user is never blocked, although the hub is the default.
         self.assertEqual(self.code(path, "s-inert2", conf=self.tmp / "absent.env"), 0)
+        unready = self.tmp / "unready.env"
+        unready.write_text("NOTIFY_CHANNELS=telegram\nTELEGRAM_BOT_TOKEN=1:x\nTELEGRAM_CHAT_ID=\n")
+        self.assertEqual(self.code(path, "s-inert", conf=unready), 0)
         none = self.tmp / "none.env"
         none.write_text("NOTIFY_CHANNELS=none\nTELEGRAM_BOT_TOKEN=1:x\nTELEGRAM_CHAT_ID=1\n")
         self.assertEqual(self.code(path, "s-inert3", conf=none), 0)
+        off = self.tmp / "off.env"
+        off.write_text("VOICE_HUB=off\n")
+        self.assertEqual(self.code(path, "s-inert4", conf=off), 0)
+
+    def test_a_hub_delivery_satisfies_the_hook(self):
+        local = T0.astimezone().replace(tzinfo=None) + datetime.timedelta(minutes=5)
+        self.log.write_text("%s sent note | kind=audio to=hub engine=say\n"
+                            % local.strftime("%Y-%m-%d %H:%M:%S"))
+        conf = self.tmp / "hub.env"
+        conf.write_text("NOTIFY_CHANNELS=hub\n")
+        path = self.t("hub.jsonl", "apply it", 20, 1500, minutes=9,
+                      cmd="kit/bundles/voice/scripts/voice-note.py --title T 'Done.'")
+        self.assertEqual(self.code(path, "s-hub", conf=conf), 0)
 
     def test_chat_or_hub_alone_enforce(self):
         path = self.t("alone.jsonl", "apply it", 20, 1500, minutes=9)
-        for i, text in enumerate(["GCHAT_WEBHOOK_URL='https://chat.example.com/x?key=a&token=b'\n",
-                                  "NOTIFY_CHANNELS=none\nVOICE_HUB=on\n"]):
+        for i, text in enumerate(["NOTIFY_CHANNELS=chat\n"
+                                  "GCHAT_WEBHOOK_URL='https://chat.example.com/x?key=a&token=b'\n",
+                                  "NOTIFY_CHANNELS=hub\n", "# defaults: the hub\n"]):
             conf = self.tmp / ("alone%d.env" % i)
             conf.write_text(text)
             self.assertEqual(self.code(path, "s-alone%d" % i, conf=conf), 2, text)

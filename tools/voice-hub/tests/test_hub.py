@@ -405,6 +405,60 @@ class ResynthAndPlayTests(Base):
         t.join(5)
         stream.close()
 
+    def test_play_with_wait_and_no_open_tab_answers_at_once(self):
+        import time
+        t0 = time.monotonic()
+        got = self.post("/api/play", {"id": self.note["id"], "from": "cli", "wait": 3})
+        self.assertEqual((got["tab"], got["players"]), ("", 0))
+        self.assertLess(time.monotonic() - t0, 1.0)
+        health = json.loads(urllib.request.urlopen(self.base + "/healthz").read())
+        self.assertEqual((health["ok"], health["players"]), (True, 0))
+
+    def test_play_with_wait_reaches_an_open_player_tab(self):
+        import threading
+        import time
+        stream = urllib.request.urlopen(self.base + "/api/events?player=1", timeout=10)
+
+        def player_tab():
+            for raw in stream:
+                line = raw.decode().strip()
+                if line.startswith("data:") and '"from": "cli"' in line:
+                    self.post("/api/play-ack", {"req": json.loads(line[5:])["req"], "tab": "tabC"})
+                    return
+        t = threading.Thread(target=player_tab, daemon=True)
+        t.start()
+        time.sleep(0.5)
+        health = json.loads(urllib.request.urlopen(self.base + "/healthz").read())
+        self.assertEqual(health["players"], 1)
+        got = self.post("/api/play", {"id": self.note["id"], "from": "cli", "wait": 3})
+        self.assertEqual((got["tab"], got["players"]), ("tabC", 1))
+        t.join(5)
+        stream.close()
+
+    def cli(self, *args):
+        env = dict(os.environ, HOME=self.tmp, AVH_HOME=self.cfg["AVH_HOME"],
+                   AVH_PORT=self.cfg["AVH_PORT"], AVH_CONFIG=os.path.join(self.tmp, "none.env"))
+        return subprocess.run([sys.executable, os.path.join(ROOT, "bin", "avh")] + list(args),
+                              env=env, capture_output=True, text=True, timeout=30)
+
+    def test_cli_ping_and_play(self):
+        proc = self.cli("ping", "--json")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout)["running"], True)
+        proc = self.cli("play", self.note["id"], "--wait", "0.5", "--json")
+        self.assertEqual(proc.returncode, 1, proc.stderr)
+        out = json.loads(proc.stdout)
+        self.assertEqual((out["running"], out["played"]), (True, False))
+
+    def test_cli_ping_when_down_names_the_start_command(self):
+        self.cfg["AVH_PORT"] = str(free_port())          # nothing listens there
+        proc = self.cli("ping", "--json")
+        self.assertEqual(proc.returncode, 1)
+        out = json.loads(proc.stdout)
+        self.assertFalse(out["running"])
+        self.assertIn("tools/voice-hub/bin/avh", out["start"])
+        self.assertEqual(self.cli("play", self.note["id"], "--json").returncode, 2)
+
     def test_mark_all_heard(self):
         other = self.add(title="Other")
         self.assertEqual(self.post("/api/notes/mark-all-heard", {}), {"marked": 2})

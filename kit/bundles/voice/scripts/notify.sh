@@ -6,15 +6,19 @@
 #   notify.sh --code-only CMD          # just the command, as its own message
 #   notify.sh --test                   # formatting showcase, to verify a channel
 #
-# Channels: Telegram (bot) and Google Chat (incoming webhook, or a space through the
-# google bundle's gchat.py). Levels: info and ok arrive silently, warn and crit notify.
-# Title and message may use inline HTML (<b> <i> <s> <code>); it is converted per channel.
+# Channels (NOTIFY_CHANNELS): hub, the default, prints the message here and attaches any
+# command to this agent session's note in the local voice hub (the hub keeps voice notes,
+# not text). Telegram (bot) and Google Chat (incoming webhook, or a space through the
+# google bundle's gchat.py) are opt-in: list them (NOTIFY_CHANNELS=hub,telegram) or pass
+# --to. Levels: info and ok arrive silently, warn and crit notify. Title and message may
+# use inline HTML (<b> <i> <s> <code>); it is converted per channel.
 #
 # Every command sent with --code / --code-only is also printed on stderr as a fenced
 # block: a command the user must run goes to the channel AND into the agent's reply.
 #
-# With no channel configured this is a silent no-op that exits 0: an emitter must never
-# break because a token is missing. Exit codes: 0 sent, 3 partial, 1 nothing delivered.
+# With NOTIFY_CHANNELS=none, or an opted-in channel without credentials, this is a silent
+# no-op that exits 0: an emitter must never break because a token is missing.
+# Exit codes: 0 sent, 3 partial, 1 nothing delivered.
 #
 # The work happens in lib/notifylib.py (shared with voice-note.py), so secrets stay
 # inside one Python process: never on a command line, never in a log. bash 3.2 friendly.

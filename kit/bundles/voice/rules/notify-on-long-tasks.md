@@ -18,11 +18,13 @@ kit/bundles/voice/scripts/voice-note.py --source <TAG> --title "<short title>" "
   minutes, ending with what you need from the user.
 - Never read commands, paths, hashes or ids aloud. A command for the user goes to the
   channel with `notify.sh --code-only` **and** into your reply as a fenced block.
-- If the script prints a `Markdown:` hub link, paste it into your reply.
+- The note goes to the local voice hub (the default). Paste the `Markdown:` hub link it
+  prints into your reply. If it says the hub is not running, give the user the start
+  command it printed. Never add `--to telegram` or `--to chat` unless the user asked.
 - Do not send one for answers that fit in a glance.
 - Skip it for one turn when the user writes **"no audio"** (the phrase is configurable,
   `VOICE_HOOK_OPTOUT`).
 
 The thresholds live in `~/.config/agent-skeleton/notify.env` (`VOICE_HOOK_*`). The Stop
-hook `voice-summary-stop` enforces this where the tool supports it; it is inert until a
-channel is configured (`bin/skeleton setup voice`).
+hook `voice-summary-stop` enforces this where the tool supports it; it is inert until the
+bundle is configured (`bin/skeleton setup voice`).

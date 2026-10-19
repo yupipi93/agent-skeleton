@@ -5,6 +5,8 @@ import json
 import os
 import subprocess
 import sys
+import urllib.error
+import urllib.request
 
 from . import __version__
 from . import agents as agents_mod
@@ -166,6 +168,80 @@ def cmd_open(args, cfg):
     return 0
 
 
+def _http_json(url, body=None, timeout=4.0):
+    """GET (or POST with the X-AVH header) a local hub URL. Returns the JSON or raises."""
+    data = None if body is None else json.dumps(body).encode("utf-8")
+    headers = {} if body is None else {"X-AVH": "1", "Content-Type": "application/json"}
+    req = urllib.request.Request(url, data=data, headers=headers,
+                                 method="GET" if body is None else "POST")
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        return json.loads(resp.read().decode("utf-8") or "{}")
+
+
+def health(cfg):
+    """{"running": bool, "url", "players", "version"}: is the server answering?"""
+    base = config_mod.local_url(cfg)
+    try:
+        h = _http_json(base + "/healthz", timeout=3.0)
+    except (OSError, ValueError, urllib.error.URLError):
+        return {"running": False, "url": base, "players": 0, "version": ""}
+    return {"running": bool(h.get("ok")), "url": base, "players": int(h.get("players") or 0),
+            "version": h.get("version", "")}
+
+
+def start_hint():
+    """The one command that starts the server on this platform."""
+    entry = "tools/voice-hub/bin/avh"
+    if sys.platform == "darwin":
+        return entry + " service install"
+    return entry + " serve"
+
+
+def cmd_ping(args, cfg):
+    """Exit 0 when the server answers, 1 when it does not (with the command to start it)."""
+    out = health(cfg)
+    if not out["running"]:
+        out["start"] = start_hint()
+    if not _print(out, args.json):
+        if out["running"]:
+            print("running: %s (%d player tab%s open)" % (
+                out["url"], out["players"], "" if out["players"] == 1 else "s"))
+        else:
+            print("not running: %s; start it with: %s" % (out["url"], out["start"]))
+    return 0 if out["running"] else 1
+
+
+def cmd_play(args, cfg):
+    """Ask an already open hub tab to play a note. Exit 0 played, 1 no open tab, 2 down."""
+    note_id = args.id
+    if note_id == "last":
+        latest = _store(cfg).list(limit=1)
+        if not latest:
+            sys.stderr.write("avh: no notes yet\n")
+            return 1
+        note_id = latest[0]["id"]
+    out = health(cfg)
+    out.update({"id": note_id, "played": False, "tab": ""})
+    if not out["running"]:
+        out["start"] = start_hint()
+        if not _print(out, args.json):
+            print("not running: %s; start it with: %s" % (out["url"], out["start"]))
+        return 2
+    try:
+        got = _http_json(out["url"] + "/api/play",
+                         {"id": note_id, "from": "cli", "wait": args.wait},
+                         timeout=args.wait + 3.0)
+        out["tab"] = got.get("tab") or ""
+        out["players"] = int(got.get("players") or 0)
+        out["played"] = bool(out["tab"])
+    except (OSError, ValueError, urllib.error.URLError) as exc:
+        out["error"] = str(exc)[:200]
+    if not _print(out, args.json):
+        print("playing in the open hub tab" if out["played"]
+              else "no hub tab took it: %s" % config_mod.note_urls(cfg, note_id)["local"])
+    return 0 if out["played"] else 1
+
+
 def cmd_resynth(args, cfg):
     """Re-record notes at the natural rate. Costs TTS characters: --dry-run first."""
     from . import resynth
@@ -285,6 +361,18 @@ def main(argv=None):
     sp = sub.add_parser("open", help="open the hub (or one note) in the browser")
     sp.add_argument("id", nargs="?")
     sp.set_defaults(fn=cmd_open)
+
+    sp = sub.add_parser("ping", help="is the server running? (exit 0 yes, 1 no)")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(fn=cmd_ping)
+
+    sp = sub.add_parser("play", help="play a note in an already open hub tab ('last' for "
+                                     "the newest); exit 0 played, 1 no tab, 2 server down")
+    sp.add_argument("id")
+    sp.add_argument("--wait", type=float, default=3.0,
+                    help="seconds an open tab gets to start it (max 5)")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(fn=cmd_play)
 
     sp = sub.add_parser("resynth", help="re-record notes at the natural rate (costs TTS)")
     sp.add_argument("ids", nargs="*")

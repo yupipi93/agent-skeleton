@@ -14,13 +14,19 @@ Engines (TTS_ENGINE, default auto):
   none    no audio: the summary is delivered as text.
   auto    google when a key or a gcloud account is configured, else say, else none.
 
-Channels (NOTIFY_CHANNELS, default auto = every configured one):
-  telegram  sendVoice (an Opus voice bubble with a speed control).
-  chat      Google Chat. With GCHAT_SPACE and the google bundle's gchat.py login, the
-            audio is uploaded (an MP4 with a waveform, which Chat plays inline). With only
-            GCHAT_WEBHOOK_URL, the caption and the summary text are posted.
-  hub       VOICE_HUB=on also stores the note in tools/voice-hub (history, player with
-            speed control, transcript) and prints a link to paste in the reply.
+Channels (NOTIFY_CHANNELS, a comma list; default hub, and auto means hub too):
+  hub       the default. The note is stored in the local voice hub (tools/voice-hub:
+            history, a player with a speed control, transcript), the player link is
+            printed for the reply, and the note is played: VOICE_HUB_OPEN=auto (default)
+            hands it to an open hub tab, else opens the link in the default browser;
+            always opens the browser; never only prints the link. The hub server must be
+            running: if it is not, the script says how to start it and exits 1.
+  telegram  opt-in. sendVoice (an Opus voice bubble with a speed control).
+  chat      opt-in. Google Chat. With GCHAT_SPACE and the google bundle's gchat.py login,
+            the audio is uploaded (an MP4 with a waveform, which Chat plays inline). With
+            only GCHAT_WEBHOOK_URL, the caption and the summary text are posted.
+Telegram and Google Chat are never used unless listed (NOTIFY_CHANNELS=hub,telegram, or
+--to telegram for one call) and configured.
 
 The opening sentence is built here, not by the caller: "Hi, Ana. This is the payments
 agent, about Terraform." It names the repository the agent is working in, so several
@@ -41,6 +47,7 @@ import io
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -632,6 +639,58 @@ def hub_register(cfg, audio, meta):
         shutil.rmtree(tmp, ignore_errors=True)
 
 
+OPEN_MODES = ("auto", "always", "never")
+
+
+def open_mode(cfg, override=None):
+    raw = (override or cfg.get("VOICE_HUB_OPEN") or "auto").strip().lower()
+    return raw if raw in OPEN_MODES else "auto"
+
+
+def browser_opener(cfg):
+    """The command that opens a URL: VOICE_HUB_OPENER, else open (macOS) or xdg-open."""
+    custom = (cfg.get("VOICE_HUB_OPENER") or "").strip()
+    if custom:
+        return shlex.split(custom)
+    if sys.platform == "darwin" and which("open"):
+        return ["open"]
+    if which("xdg-open"):
+        return ["xdg-open"]
+    return []
+
+
+def open_in_browser(cfg, url):
+    """True when the opener accepted the URL. The URL is one argv item, never a shell."""
+    cmd = browser_opener(cfg)
+    if not cmd:
+        return False
+    try:
+        proc = subprocess.run(cmd + [url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                              timeout=20)
+        return proc.returncode == 0
+    except Exception:                                         # noqa: BLE001
+        return False
+
+
+def hub_play(cfg, hub, mode):
+    """Make the stored note heard. Returns how: tab, browser, link (printed only)."""
+    url = hub.get("local") or ""
+    if mode == "never" or not url:
+        return "link"
+    if mode == "auto":
+        try:
+            proc = subprocess.run([sys.executable, nl.hub_cli(cfg), "play", hub["id"], "--json",
+                                   "--wait", "3"], stdout=subprocess.PIPE,
+                                  stderr=subprocess.DEVNULL, timeout=20)
+            if json.loads(proc.stdout.decode("utf-8") or "{}").get("played"):
+                return "tab"
+        except Exception:                                     # noqa: BLE001
+            pass
+    # `always`, or no hub tab took it. The ?play=1 link still hands the note to an open
+    # tab server-side, so a second tab never plays over the first.
+    return "browser" if open_in_browser(cfg, url) else "link"
+
+
 def hub_record(cfg, hub, channels):
     if not hub.get("id"):
         return
@@ -687,7 +746,12 @@ def deliver_chat(cfg, clips, spoken, source, title, tag, hub, seconds, lang):
 
 
 def text_fallback(cfg, channels, source, title, raw, lang):
-    """Audio failed or the engine is none: the summary still has to arrive, as text."""
+    """Audio failed or the engine is none: the summary still has to arrive, as text.
+
+    Only the external channels carry text; the hub stores voice notes."""
+    channels = [c for c in channels if c in nl.EXTERNAL]
+    if not channels:
+        return [], []
     body = raw if len(raw) < 3000 else raw[:2990] + "…"
     tg = nl.render_telegram("info", source, title or TEXT[lang]["summary"],
                             nl.html_escape(body), "", cfg)
@@ -729,7 +793,11 @@ def build_parser():
     p.add_argument("--engine", help="google, say or none (default: TTS_ENGINE, auto)")
     p.add_argument("--voice", help="voice name (Chirp voice for google, `say -v` name for say)")
     p.add_argument("--speed", help="speaking rate for the channel copies (default: TTS_SPEED)")
-    p.add_argument("--to", help="channels for this call: telegram, chat, a comma list, or none")
+    p.add_argument("--to", help="channels for this call: hub, telegram, chat, a comma list, "
+                                "or none (default: NOTIFY_CHANNELS, hub)")
+    p.add_argument("--open", choices=OPEN_MODES, dest="open_mode",
+                   help="after storing in the hub: auto (an open hub tab, else the browser), "
+                        "always (the browser), never (default: VOICE_HUB_OPEN, auto)")
     p.add_argument("--who", help="how the note introduces itself (default: from the repo)")
     p.add_argument("--tag", help="short label for the caption (default: the repo)")
     p.add_argument("--greeting", help="say this instead of the greeting")
@@ -797,35 +865,61 @@ def main(argv=None):
     except ValueError:
         p.error("--speed must be a number")
     speed = min(2.0, max(0.5, speed))
-    hub_wanted = nl.hub_on(cfg) and not args.no_hub
+    resolved = nl.resolve_channels(cfg, args.to, warn=not (args.dry_run or args.plan))
+    hub_wanted = "hub" in resolved and not args.no_hub
+    channels = [c for c in resolved if c in nl.EXTERNAL]      # opt-in external channels
     # The hub keeps the natural-rate recording and its player speeds it up cleanly; the
     # channels without a speed control get a copy at TTS_SPEED.
     synth_speed = 1.0 if (hub_wanted and not args.speed) else speed
     tempo = speed / synth_speed
-    channels = nl.resolve_channels(cfg, args.to, warn=not (args.dry_run or args.plan))
 
     if args.plan or args.dry_run:
-        sys.stderr.write("PLAN engine=%s voice=%s lang=%s speed=%s (synth %s) channels=%s hub=%s "
-                         "chars=%d\n" % (engine, voice or "(default)", lang_code, speed,
-                                         synth_speed, ",".join(channels) or "-",
-                                         "on" if hub_wanted else "off", len(spoken)))
+        sys.stderr.write("PLAN engine=%s voice=%s lang=%s speed=%s (synth %s) channels=%s "
+                         "open=%s chars=%d\n" % (
+                             engine, voice or "(default)", lang_code, speed, synth_speed,
+                             ",".join((["hub"] if hub_wanted else []) + channels) or "-",
+                             open_mode(cfg, args.open_mode) if hub_wanted else "-",
+                             len(spoken)))
         sys.stderr.write("caption: %s\n--- spoken ---\n%s\n" % (
             caption_md(args.source, args.title, tag), spoken))
         if args.plan or engine == "none":
             return 0
 
-    if not (args.no_send or args.dry_run) and not channels and not hub_wanted:
-        sys.stderr.write("voice-note: no channel configured (NOTIFY_CHANNELS, Telegram, Google "
-                         "Chat or VOICE_HUB=on in %s); nothing sent. Run: bin/skeleton setup "
-                         "voice\n" % nl.config_file())
+    sending = not (args.no_send or args.dry_run)
+    if sending and not channels and not hub_wanted:
+        sys.stderr.write("voice-note: no channel (NOTIFY_CHANNELS=%s, VOICE_HUB=%s in %s); "
+                         "nothing sent. The default is the local hub: NOTIFY_CHANNELS=hub\n"
+                         % (args.to or cfg.get("NOTIFY_CHANNELS") or "hub",
+                            cfg.get("VOICE_HUB") or "on", nl.config_file()))
         return 1
+
+    pre_failures = []
+    if sending and hub_wanted:
+        status = nl.hub_status(cfg)
+        if not status.get("running"):
+            # Never a silent fallback: the external channels are used only when the user
+            # listed them, and then the missing hub still makes the result partial.
+            hub_wanted = False
+            pre_failures.append("hub: %s" % status.get("error", "not running"))
+            if not channels:
+                sys.stderr.write("voice-note: %s\n" % status.get("error", "hub not running"))
+                nl.append_log(nl.voice_log(), "failed | hub down | source=%s" % args.source)
+                return 1
 
     if engine == "none":
         if args.no_send:
             sys.stderr.write("voice-note: engine none, no audio to write\n")
             return 1
+        if not channels:
+            sys.stderr.write("voice-note: no speech engine (TTS_ENGINE=none, or no `say` and "
+                             "no Google key), and the hub stores audio only. Install ffmpeg "
+                             "(brew install ffmpeg) or run: kit/bundles/voice/scripts/"
+                             "tts-set-api-key.sh\n")
+            return 1
         delivered, failures = text_fallback(cfg, channels, args.source, args.title, raw, lang)
-        return finish(cfg, delivered, failures, "text", engine, args, tag, len(spoken), None, {})
+        return finish(cfg, delivered, pre_failures + failures + (
+            ["hub: no audio to store (engine none)"] if hub_wanted else []),
+            "text", engine, args, tag, len(spoken), None, {})
 
     try:
         clips, seconds, mode = synthesize(engine, spoken, voice, lang_code, synth_speed, cfg,
@@ -835,11 +929,13 @@ def main(argv=None):
         if args.no_send or args.dry_run:
             sys.stderr.write("voice-note: synthesis failed: %s\n" % reason)
             return 1
-        sys.stderr.write("voice-note: synthesis failed (%s); sending the text instead\n" % reason)
+        if channels:
+            sys.stderr.write("voice-note: synthesis failed (%s); sending the text instead\n"
+                             % reason)
         nl.append_log(nl.voice_log(), "fallback text | %s" % reason[:200])
         delivered, failures = text_fallback(cfg, channels, args.source, args.title, raw, lang)
-        return finish(cfg, delivered, failures + ["audio: %s" % reason], "text-fallback",
-                      engine, args, tag, len(spoken), None, {})
+        return finish(cfg, delivered, pre_failures + failures + ["audio: %s" % reason],
+                      "text-fallback", engine, args, tag, len(spoken), None, {})
 
     native = clips[0]
     if args.out:
@@ -873,7 +969,7 @@ def main(argv=None):
             "summary": args.summary or "", "links": args.link, "brief": args.brief or "",
             "commands": [{"code": c, "label": "", "explanation": ""} for c in args.commands]})
 
-    delivered, failures, record = [], [], {}
+    delivered, failures, record = [], list(pre_failures), {}
     for channel in channels:
         try:
             if channel == "telegram":
@@ -888,8 +984,14 @@ def main(argv=None):
             failures.append("%s: %s" % (channel, nl.scrub(exc, cfg)))
             record[channel] = {"status": "failed", "error": nl.scrub(exc, cfg)[:200]}
     if hub.get("id"):
-        delivered.append("hub")
+        delivered.insert(0, "hub")
+        played = hub_play(cfg, hub, open_mode(cfg, args.open_mode))
+        record["hub"] = {"status": "ok", "played": played}
         hub_record(cfg, hub, record)
+        sys.stderr.write("voice-note: %s\n" % {
+            "tab": "playing in the open hub tab",
+            "browser": "opened the player in the browser",
+            "link": "stored in the hub; open the link below to listen"}[played])
         print("🎧 Voice hub: %s" % hub["local"])
         if hub.get("public"):
             print("📱 Phone: %s" % hub["public"])
@@ -1013,12 +1115,25 @@ def self_test():
         shutil.rmtree(tmpdir, ignore_errors=True)
 
     base = dict(nl.DEFAULTS)
-    ok("nothing configured, no channel", nl.resolve_channels(base, warn=False) == [])
+    ok("the default channel is the hub", nl.resolve_channels(base, warn=False) == ["hub"])
     tg = dict(base, TELEGRAM_BOT_TOKEN="123:fake", TELEGRAM_CHAT_ID="42")
-    ok("auto finds telegram", nl.resolve_channels(tg, warn=False) == ["telegram"])
+    ok("credentials alone never turn telegram on", nl.resolve_channels(tg, warn=False) == ["hub"])
+    ok("auto means the hub only",
+       nl.resolve_channels(dict(tg, NOTIFY_CHANNELS="auto"), warn=False) == ["hub"])
+    ok("telegram is an explicit opt-in",
+       nl.resolve_channels(dict(tg, NOTIFY_CHANNELS="hub,telegram"), warn=False)
+       == ["hub", "telegram"])
+    ok("--to opts in for one call", nl.resolve_channels(tg, "telegram", warn=False) == ["telegram"])
+    ok("VOICE_HUB=off removes the hub",
+       nl.resolve_channels(dict(tg, VOICE_HUB="off", NOTIFY_CHANNELS="hub,telegram"), warn=False)
+       == ["telegram"])
     ok("none means none", nl.resolve_channels(dict(tg, NOTIFY_CHANNELS="none"), warn=False) == [])
     ok("an unconfigured channel is skipped",
        nl.resolve_channels(dict(tg, NOTIFY_CHANNELS="chat,telegram"), warn=False) == ["telegram"])
+    ok("open mode defaults to auto", open_mode(base) == "auto")
+    ok("an unknown open mode is auto", open_mode(dict(base, VOICE_HUB_OPEN="sometimes")) == "auto")
+    ok("a custom opener is split, not shelled",
+       browser_opener(dict(base, VOICE_HUB_OPENER="my-open --new-tab")) == ["my-open", "--new-tab"])
     ok("the bot token is scrubbed", "123:fake" not in nl.scrub("url bot123:fake/x", tg))
     ok("engine auto without credentials is not google", resolve_engine(base) in ("say", "none"))
     ok("engine auto with a key is google", resolve_engine(dict(base, TTS_API_KEY="k")) == "google")

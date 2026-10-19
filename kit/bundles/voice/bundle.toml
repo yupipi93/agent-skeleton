@@ -1,7 +1,7 @@
 name = "voice"
 title = "Voice summaries"
 emoji = "🎧"
-description = "Spoken summaries and text notifications at the end of long tasks (Telegram, Google Chat), with an optional local voice hub."
+description = "Spoken summaries and text notifications at the end of long tasks, played in a local voice hub; Telegram and Google Chat are opt-in."
 version = "0.1.0"
 default_enabled = false
 requires = ["core"]

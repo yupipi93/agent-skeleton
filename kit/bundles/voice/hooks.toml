@@ -1,5 +1,6 @@
 # Stop hook: long, complex or decision turns end with a voice summary.
-# Inert until a channel is configured (bin/skeleton setup voice). Turn it off with
+# Inert until the bundle is configured (bin/skeleton setup voice writes notify.env).
+# A note stored in the local voice hub counts as delivered. Turn it off with
 # `[hooks] voice-summary-stop = false` in skeleton.local.toml.
 [[hook]]
 id = "voice-summary-stop"

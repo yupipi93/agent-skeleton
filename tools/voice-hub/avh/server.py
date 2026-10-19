@@ -41,6 +41,7 @@ API_RESYNTH = re.compile(r"^/api/notes/([A-Za-z0-9]{4,40})/resynth$")
 MEDIA = re.compile(r"^/media/([A-Za-z0-9]{4,40})\.mp3$")
 RANGE_RE = re.compile(r"^bytes=(\d*)-(\d*)$")
 PLAY_HANDOFF_TIMEOUT = 2.5     # seconds an open hub tab gets to start a note from a link
+PLAY_WAIT_MAX = 5.0            # cap on `wait` in POST /api/play (the CLI's `avh play`)
 
 mimetypes.add_type("application/manifest+json", ".webmanifest")
 mimetypes.add_type("text/javascript", ".js")
@@ -92,8 +93,11 @@ class Hub:
         self.players = {}        # host -> open event streams of tabs that hold the player role
         self.acks = {}           # play request -> tab that is playing it
 
-    def player_streams(self, host):
+    def player_streams(self, host=None):
+        """Open player tabs for `host`, or for every host when `host` is None."""
         with self.cond:
+            if host is None:
+                return sum(self.players.values())
             return self.players.get(host, 0)
 
     def add_player(self, host, delta):
@@ -205,8 +209,11 @@ class Handler(BaseHTTPRequestHandler):
             if path in ("/", "/index.html") or m:
                 return self._static("index.html", cache="no-cache")
             if path == "/healthz":
+                host = (self.headers.get("Host") or "").lower()
                 return self._send_json({"ok": True, "version": __version__,
-                                        "started": self.hub.started})
+                                        "started": self.hub.started,
+                                        "players": self.hub.player_streams(host),
+                                        "players_total": self.hub.player_streams()})
             if path == "/api/config":
                 return self._api_config()
             if path == "/api/notes":
@@ -274,9 +281,25 @@ class Handler(BaseHTTPRequestHandler):
                 body = self._read_json()
             except ValueError as exc:
                 return self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
-            req = self.hub.signal("play", {"id": str(body.get("id", ""))[:40],
+            host = (self.headers.get("Host") or "").lower()
+            note_id = str(body.get("id", ""))[:40]
+            try:
+                wait = min(PLAY_WAIT_MAX, max(0.0, float(body.get("wait") or 0)))
+            except (TypeError, ValueError):
+                wait = 0.0
+            if wait:
+                # A caller outside the browser (`avh play`, voice-note.py) asks: is a hub
+                # tab open that can play this now? Answer at once when none is.
+                players = self.hub.player_streams(host)
+                if not players or not self.hub.store.get(note_id):
+                    return self._send_json({"req": 0, "tab": "", "players": players})
+            req = self.hub.signal("play", {"id": note_id,
                                            "from": str(body.get("from", ""))[:40],
-                                           "host": (self.headers.get("Host") or "").lower()})
+                                           "host": host})
+            if wait:
+                tab = self.hub.wait_ack(req, wait)
+                return self._send_json({"req": req, "tab": tab or "",
+                                        "players": self.hub.player_streams(host)})
             return self._send_json({"req": req})
         if path == "/api/play-ack":
             try:

@@ -16,9 +16,13 @@ Read [README.md](README.md) first. This file is for agents changing the hub.
 
 ## Using the hub from an agent (any repo)
 
-- A note sent with `kit/bundles/voice/scripts/voice-note.py` while `VOICE_HUB=on` is
-  stored here automatically, and the script prints a `Markdown: [🎧 Listen: <title>](...)`
-  line. Put that line in your reply.
+- A note sent with `kit/bundles/voice/scripts/voice-note.py` is stored here by default
+  (the hub is the voice bundle's default channel), and the script prints a
+  `Markdown: [🎧 Listen: <title>](...)` line. Put that line in your reply. If it reports
+  the hub is not running, give the user the start command it printed.
+- `GET /healthz` reports `players` (open hub tabs that can take "play this note"), and
+  `POST /api/play` with `wait` answers with the tab that took the note: `avh ping` and
+  `avh play` are built on them, and `voice-note.py` on those.
 - Look notes up with `tools/voice-hub/bin/avh list --json` /
   `tools/voice-hub/bin/avh show <id> --json`, or through the MCP tools
   (`voice_notes_recent`, `voice_note_get`, `voice_note_play`).

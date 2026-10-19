@@ -4,13 +4,14 @@
 #   kit/bundles/voice/scripts/notify-setup.sh          # the wizard
 #   kit/bundles/voice/scripts/notify-setup.sh --show   # which keys are set (never values)
 #
-# Writes ~/.config/agent-skeleton/notify.env (mode 0600, directory 0700):
-#   1. Telegram: validates the bot token, discovers your chat id from getUpdates.
-#   2. Google Chat: an incoming webhook URL (text and cards), optionally a space for audio.
-#   3. Text to speech: Google Cloud TTS with an API key, else the macOS `say` voice,
-#      else none (summaries go out as text).
-#   4. Language, your name for the greeting, the optional local voice hub.
-#   5. A test message and a test voice note, only if you say yes.
+# Writes ~/.config/agent-skeleton/notify.env (mode 0600, directory 0700). The default path
+# keeps every note on this machine:
+#   1. The local voice hub (tools/voice-hub): notes are stored there and played in its web
+#      player. It offers to install and start the hub as a login service (macOS).
+#   2. Text to speech: the macOS `say` voice, or Google Cloud TTS if you give an API key.
+#   3. Language and your first name for the greeting.
+#   4. Advanced, optional, only if you choose it: Telegram and/or Google Chat delivery.
+#   5. A test voice note to the hub, only if you say yes.
 #
 # Secrets are read with a hidden prompt, reach curl through a config on stdin (`curl -K -`)
 # and are stored with envfile.py on stdin: never on a command line, never echoed back.
@@ -20,6 +21,8 @@ set -u
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$here/../../../.." && pwd)"
 ENVFILE="$root/kit/bundles/core/scripts/lib/envfile.py"
+HUB="$root/tools/voice-hub/bin/avh"
+HUB_CMD="tools/voice-hub/bin/avh"
 CONF_DIR="${AGENT_SKELETON_CONFIG_DIR:-$HOME/.config/agent-skeleton}"
 CONF="${NOTIFY_CONFIG:-$CONF_DIR/notify.env}"
 
@@ -58,6 +61,7 @@ try:
 except Exception:
     print("")' "$1"
 }
+hub_running() { python3 "$HUB" ping >/dev/null 2>&1; }
 
 if [ "${1:-}" = "-h" ] || [ "${1:-}" = "--help" ]; then
   sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'
@@ -74,9 +78,7 @@ if [ ! -t 0 ]; then
   say_line "notify-setup.sh is interactive: run it in a terminal (bin/skeleton setup voice)." >&2
   exit 2
 fi
-for cmd in python3 curl; do
-  command -v "$cmd" >/dev/null 2>&1 || { say_line "missing $cmd" >&2; exit 1; }
-done
+command -v python3 >/dev/null 2>&1 || { say_line "missing python3" >&2; exit 1; }
 
 umask 077
 mkdir -p "$CONF_DIR" && chmod 700 "$CONF_DIR" 2>/dev/null
@@ -88,16 +90,88 @@ chmod 600 "$CONF"
 
 say_line ""
 say_line "🎧 Voice bundle setup. Config: $CONF"
-say_line "   Channels: Telegram (voice bubbles with a speed control) and/or Google Chat."
+say_line "   Voice notes go to the local voice hub, a web player on this machine."
+say_line "   Telegram and Google Chat are optional extras, offered at the end."
 say_line ""
 
-channels=""
+# --- 1. The local voice hub -------------------------------------------------------------
+say_line "1. Local voice hub ($HUB_CMD)"
+set_plain VOICE_HUB on
+if ! command -v ffmpeg >/dev/null 2>&1; then
+  say_line "  ⚠️  ffmpeg is missing: brew install ffmpeg (the hub and the voices need it)."
+fi
+if hub_running; then
+  say_line "  ✅ $(python3 "$HUB" ping 2>/dev/null)"
+elif [ "$(uname -s)" = Darwin ]; then
+  if yes_no "  The hub is not running. Install and start it as a login service now (launchd)?" y; then
+    python3 "$HUB" service install || say_line "  ❌ service install failed; run it again: $HUB_CMD service install"
+    i=0
+    while [ "$i" -lt 20 ] && ! hub_running; do sleep 0.5; i=$((i + 1)); done
+    if hub_running; then
+      say_line "  ✅ $(python3 "$HUB" ping 2>/dev/null)"
+    else
+      say_line "  ❌ the hub did not answer yet; check it with: $HUB_CMD doctor"
+    fi
+  else
+    say_line "  Start it later with: $HUB_CMD service install   (or in the foreground: $HUB_CMD serve)"
+  fi
+else
+  say_line "  The hub is not running. Start it with: $HUB_CMD serve"
+  say_line "  (keep it running with your own supervisor: a systemd user unit, tmux, ...)"
+fi
+open_default="$(get VOICE_HUB_OPEN)"
+[ -n "$open_default" ] || open_default=auto
+say_line "  When a note arrives: auto plays it in an open hub tab, else opens the player in"
+say_line "  your browser; always opens the browser; never only prints the link."
+open_mode="$(ask "  Play mode, auto, always or never" "$open_default")"
+case "$open_mode" in
+  auto|always|never) set_plain VOICE_HUB_OPEN "$open_mode" ;;
+  *) say_line "  unknown mode, keeping auto"; set_plain VOICE_HUB_OPEN auto ;;
+esac
 
-# --- 1. Telegram ----------------------------------------------------------------------
-token="$(get TELEGRAM_BOT_TOKEN)"
-default_tg=n
-[ -n "$token" ] && default_tg=y
-if yes_no "Use Telegram?" "$default_tg"; then
+# --- 2. Text to speech ------------------------------------------------------------------
+engine="$(get TTS_ENGINE)"
+key_set="$(get TTS_API_KEY)"
+say_line ""
+say_line "2. Voice"
+if [ -n "$key_set" ] && yes_no "  A Google TTS API key is stored. Keep using Google voices?" y; then
+  engine=google
+elif yes_no "  Use Google Cloud TTS (Chirp 3 HD voices; needs a Google Cloud API key)?" n; then
+  if /bin/bash "$here/tts-set-api-key.sh" --no-test; then
+    engine=google
+  else
+    engine=""
+  fi
+fi
+if [ "$engine" != google ]; then
+  if command -v say >/dev/null 2>&1; then
+    engine=say
+    say_line "  Using the built-in macOS voice (say). Free and offline."
+  else
+    engine=none
+    say_line "  ⚠️  No speech engine found (no macOS say, no Google key). The hub stores audio"
+    say_line "     only, so add a key later: kit/bundles/voice/scripts/tts-set-api-key.sh"
+  fi
+fi
+set_plain TTS_ENGINE "$engine"
+
+# --- 3. Language and name ---------------------------------------------------------------
+say_line ""
+say_line "3. Language and greeting"
+lang_default="$(get TTS_LANG)"
+[ -n "$lang_default" ] || lang_default=en
+lang="$(ask "  Spoken language, en or es" "$lang_default")"
+case "$lang" in
+  en|es) set_plain TTS_LANG "$lang" ;;
+  *) say_line "  unsupported language $lang, keeping en"; set_plain TTS_LANG en ;;
+esac
+name="$(ask "  Your first name for the greeting (Enter for none)" "$(get VOICE_USER_NAME)")"
+[ -n "$name" ] && set_plain VOICE_USER_NAME "$name"
+
+# --- 4. Advanced, optional: external channels -------------------------------------------
+setup_telegram() {
+  command -v curl >/dev/null 2>&1 || { say_line "  missing curl: Telegram skipped"; return 1; }
+  token="$(get TELEGRAM_BOT_TOKEN)"
   if [ -n "$token" ] && yes_no "  A bot token is already stored. Keep it?" y; then
     :
   else
@@ -108,32 +182,28 @@ if yes_no "Use Telegram?" "$default_tg"; then
   bot="$(printf '%s' "$me" | json_field 'd["result"]["username"] if d.get("ok") else ""')"
   if [ -z "$bot" ]; then
     say_line "  ❌ Telegram rejected that token; Telegram is skipped. Re-run setup to retry."
-  else
-    set_secret TELEGRAM_BOT_TOKEN "$token"
-    say_line "  ✅ bot @$bot (token stored, ending ...${token: -4})"
-    chat_id="$(get TELEGRAM_CHAT_ID)"
-    if [ -z "$chat_id" ] || ! yes_no "  Keep chat id $chat_id?" y; then
-      say_line "  Open Telegram, find @$bot, press START and send it any message."
-      ask "  Press Enter when you have sent it" "" >/dev/null
-      chat_id="$(tg getUpdates | json_field '[c for c in [(u.get(k) or {}).get("chat", {}).get("id") for u in d.get("result", []) for k in ("message", "edited_message", "channel_post")] if c][-1]')"
-      if [ -z "$chat_id" ]; then
-        chat_id="$(ask "  No message found yet. Type the chat id by hand, or Enter to skip" "")"
-      fi
-    fi
-    if [ -n "$chat_id" ]; then
-      set_plain TELEGRAM_CHAT_ID "$chat_id"
-      say_line "  ✅ chat $chat_id"
-      channels="telegram"
+    return 1
+  fi
+  set_secret TELEGRAM_BOT_TOKEN "$token"
+  say_line "  ✅ bot @$bot (token stored, ending ...${token: -4})"
+  chat_id="$(get TELEGRAM_CHAT_ID)"
+  if [ -z "$chat_id" ] || ! yes_no "  Keep chat id $chat_id?" y; then
+    say_line "  Open Telegram, find @$bot, press START and send it any message."
+    ask "  Press Enter when you have sent it" "" >/dev/null
+    chat_id="$(tg getUpdates | json_field '[c for c in [(u.get(k) or {}).get("chat", {}).get("id") for u in d.get("result", []) for k in ("message", "edited_message", "channel_post")] if c][-1]')"
+    if [ -z "$chat_id" ]; then
+      chat_id="$(ask "  No message found yet. Type the chat id by hand, or Enter to skip" "")"
     fi
   fi
-fi
+  [ -n "$chat_id" ] || return 1
+  set_plain TELEGRAM_CHAT_ID "$chat_id"
+  say_line "  ✅ chat $chat_id"
+  return 0
+}
 
-# --- 2. Google Chat ---------------------------------------------------------------------
-hook="$(get GCHAT_WEBHOOK_URL)"
-space="$(get GCHAT_SPACE)"
-default_chat=n
-{ [ -n "$hook" ] || [ -n "$space" ]; } && default_chat=y
-if yes_no "Use Google Chat?" "$default_chat"; then
+setup_chat() {
+  hook="$(get GCHAT_WEBHOOK_URL)"
+  space="$(get GCHAT_SPACE)"
   if [ -n "$hook" ] && yes_no "  A webhook URL is already stored. Keep it?" y; then
     :
   else
@@ -152,69 +222,47 @@ if yes_no "Use Google Chat?" "$default_chat"; then
     "") ;;
     *) say_line "  ❌ a space id starts with spaces/; skipped"; space="" ;;
   esac
-  if [ -n "$hook" ] || [ -n "$space" ]; then
-    channels="${channels:+$channels,}chat"
-  fi
-fi
-set_plain NOTIFY_CHANNELS "${channels:-none}"
+  [ -n "$hook" ] || [ -n "$space" ]
+}
 
-# --- 3. Text to speech ------------------------------------------------------------------
-engine="$(get TTS_ENGINE)"
-key_set="$(get TTS_API_KEY)"
 say_line ""
-if [ -n "$key_set" ] && yes_no "A Google TTS API key is stored. Keep using Google voices?" y; then
-  engine=google
-elif yes_no "Use Google Cloud TTS (Chirp 3 HD voices; needs a Google Cloud API key)?" n; then
-  if /bin/bash "$here/tts-set-api-key.sh" --no-test; then
-    engine=google
-  else
-    engine=""
+say_line "4. Advanced, optional: Telegram and Google Chat"
+say_line "   Off unless you choose them here. Notes then leave this machine, so pick only"
+say_line "   channels you trust with your work content."
+external=""
+current="$(get NOTIFY_CHANNELS)"
+ext_default=n
+case ",$current," in *,telegram,*|*,chat,*) ext_default=y ;; esac
+if yes_no "Also deliver voice notes and notifications to Telegram or Google Chat?" "$ext_default"; then
+  tg_default=n
+  case ",$current," in *,telegram,*) tg_default=y ;; esac
+  if yes_no "  Use Telegram?" "$tg_default" && setup_telegram; then
+    external="telegram"
+  fi
+  chat_default=n
+  case ",$current," in *,chat,*) chat_default=y ;; esac
+  if yes_no "  Use Google Chat?" "$chat_default" && setup_chat; then
+    external="${external:+$external,}chat"
   fi
 fi
-if [ "$engine" != google ]; then
-  if command -v say >/dev/null 2>&1; then
-    engine=say
-    say_line "Using the built-in macOS voice (say). Free and offline."
-  else
-    engine=none
-    say_line "No speech engine found: summaries will be sent as text."
-  fi
-fi
-set_plain TTS_ENGINE "$engine"
-if [ "$engine" != none ] && ! command -v ffmpeg >/dev/null 2>&1; then
-  say_line "⚠️  ffmpeg is missing: brew install ffmpeg (audio conversion needs it)."
-fi
-
-# --- 4. Language, name, hub -------------------------------------------------------------
-lang_default="$(get TTS_LANG)"
-[ -n "$lang_default" ] || lang_default=en
-lang="$(ask "Spoken language, en or es" "$lang_default")"
-case "$lang" in en|es) set_plain TTS_LANG "$lang" ;; *) say_line "unsupported language $lang, keeping en"; set_plain TTS_LANG en ;; esac
-name="$(ask "Your first name for the greeting (Enter for none)" "$(get VOICE_USER_NAME)")"
-[ -n "$name" ] && set_plain VOICE_USER_NAME "$name"
-hub_default=n
-[ "$(get VOICE_HUB)" = on ] && hub_default=y
-if yes_no "Also keep every note in the local voice hub (history + player, tools/voice-hub)?" "$hub_default"; then
-  set_plain VOICE_HUB on
-  say_line "  Start it with: tools/voice-hub/bin/avh serve   (or: tools/voice-hub/bin/avh service install)"
-else
-  set_plain VOICE_HUB off
-fi
+set_plain NOTIFY_CHANNELS "hub${external:+,$external}"
 
 chmod 600 "$CONF"
 say_line ""
-say_line "Saved $CONF (0600). Keys set:"
+say_line "Saved $CONF (0600). Channels: hub${external:+,$external}. Keys set:"
 python3 "$ENVFILE" keys "$CONF" | sed 's/^/  /'
 
 # --- 5. Test, only with consent -----------------------------------------------------------
-if [ "${channels:-none}" = none ] && [ "$(get VOICE_HUB)" != on ]; then
-  say_line "No channel configured: nothing to test. The Stop hook stays inert until you add one."
-  exit 0
-fi
 say_line ""
-if yes_no "Send a test notification and a short test voice note now?" n; then
-  /bin/bash "$here/notify.sh" --source NOTIFY ok "Channel ready" "The agent can reach you here." || true
-  python3 "$here/voice-note.py" --source AGENT --title "Voice test" \
-    "This is a test of the voice channel. From now on, long tasks end with a short spoken summary like this one." || true
+if [ "$engine" != none ] && yes_no "Send a short test voice note to the hub now?" n; then
+  if hub_running; then
+    python3 "$here/voice-note.py" --to hub --source AGENT --title "Voice test" \
+      "This is a test of the voice hub. From now on, long tasks end with a short spoken summary like this one." || true
+  else
+    say_line "  The hub is not running, so the test is skipped. Start it: $HUB_CMD service install (macOS) or $HUB_CMD serve"
+  fi
+fi
+if [ -n "$external" ] && yes_no "Send a test text notification to $external now?" n; then
+  /bin/bash "$here/notify.sh" --to "$external" --source NOTIFY ok "Channel ready" "The agent can reach you here." || true
 fi
 say_line "✅ voice setup done"

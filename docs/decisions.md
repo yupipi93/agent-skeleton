@@ -159,9 +159,9 @@ never in a log, and there is one place to scrub them from error messages.
 
 ## D22. `NOTIFY_CHANNELS=auto` by default
 
-With no explicit list, every configured channel is used (Telegram when it has a token and a
-chat id, Google Chat when it has a webhook or a space). `none` disables sending; an explicit
-comma list narrows it. A new user who sets up one channel needs no second setting.
+Superseded by D35. It used every configured channel (Telegram when it had a token and a
+chat id, Google Chat when it had a webhook or a space). `auto` now means the local voice
+hub only.
 
 ## D23. `voice-note.py --dry-run` versus `--plan`
 
@@ -177,8 +177,9 @@ the Stop hook.
 nothing is configured), 2 on bad usage, and 3 when the note reached at least one channel but
 another failed, or the audio failed and the text fallback went out. Exit 3 tells the agent
 the user already has the summary, so it must not send it again. `notify.sh` uses the same
-0 / 3 / 1 codes, except that with no channel configured it is a silent no-op that exits 0,
-so an emitter never breaks because a token is missing.
+0 / 3 / 1 codes, except that with `NOTIFY_CHANNELS=none` (or an opted-in channel without
+credentials) it is a silent no-op that exits 0, so an emitter never breaks because a token
+is missing.
 
 ## D25. The Stop hook counts a note only from the voice log
 
@@ -254,3 +255,26 @@ read-only, never switches the active account), `kit/bundles/docs/scripts/chrome.
 `macos-latest` and `ubuntu-latest` with Python 3.12. Tests that need macOS-only tools
 (`say`) or optional binaries (`ffmpeg` with libopus, Chrome) skip themselves when the tool
 is missing; everything else, including the bash 3.2 syntax checks, runs on both.
+
+## D35. Voice notes go to the local hub by default; Telegram and Chat are opt-in
+
+`NOTIFY_CHANNELS` defaults to `hub` and `VOICE_HUB` to `on`: a voice note is stored in the
+local voice hub (`tools/voice-hub`, loopback only) and played, in a hub tab that is already
+open (`avh play`, built on the server's existing play hand-off) or else by opening the
+`?play=1` link in the default browser (`VOICE_HUB_OPEN=auto|always|never`, opener
+overridable with `VOICE_HUB_OPENER`). `auto` means `hub`. Telegram and Google Chat keep
+their full code and tests but are used only when listed (`NOTIFY_CHANNELS=hub,telegram`)
+or passed with `--to`; credentials alone never turn them on. Reasons: a summary of work in
+progress is work content and should not leave the machine unless the user decides so; a
+web player gives speed control, history and a transcript that chat apps do not; and some
+managed networks block the external APIs outright.
+
+Consequences. If the hub is the only channel and its server is down, `voice-note.py`
+prints one line with the command that starts it (`avh service install` on macOS, `avh
+serve` elsewhere) and exits 1; it never falls back to an external channel on its own. With
+an external channel opted in as well, the missing hub makes the result partial (exit 3).
+`notify.sh` on the hub channel prints the message locally and attaches any command to the
+session's hub note, since the hub keeps voice notes, not text. The Stop hook stays inert
+until `notify.env` exists, so enabling the bundle never blocks a turn before setup has run.
+The setup wizard installs the hub first and offers the external channels as an advanced,
+optional step.
