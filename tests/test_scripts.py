@@ -1,4 +1,5 @@
 """Shell and Python scripts of the kit: syntax, text guard, envfile, re-exec."""
+import fnmatch
 import os
 import shutil
 import stat
@@ -19,11 +20,20 @@ FAKE_AWS = "AKIA" + "ABCDEFGHIJKLMNOP"
 FAKE_GH = "ghp" + "_" + "a1B2c3D4e5F6g7H8i9J0k1L2"
 
 
+# Pruned at any depth; os.walk never follows a symlink (projects/ holds links to whole repos).
+SKIP_DIRS = {".git", ".claude", ".cursor", ".gemini", ".agents", ".skeleton", "local", "projects",
+             "node_modules", ".terraform", "__pycache__"}
+
+
 def tracked(pattern):
-    skip = {".git", ".claude", ".cursor", ".gemini", ".agents", ".skeleton", "local", "projects"}
-    for p in sorted(ROOT.rglob(pattern)):
-        if not (set(p.relative_to(ROOT).parts) & skip):
-            yield p
+    found = []
+    for dirpath, dirnames, filenames in os.walk(ROOT, followlinks=False):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for fn in filenames:
+            p = Path(dirpath) / fn
+            if fnmatch.fnmatch(fn, pattern) and not p.is_symlink():
+                found.append(p)
+    return iter(sorted(found))
 
 
 class SyntaxTest(unittest.TestCase):
