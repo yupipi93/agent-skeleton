@@ -204,17 +204,35 @@ function cardEl(n, d) {
       <div class="card-title">${n.starred ? '<span class="star-on">★</span> ' : ''}${esc(title)}</div>
       <div class="meta"><span>${esc(timeFmt.format(d))}</span><span class="sep"></span><span>${esc(a.name)}</span>${n.tag ? `<span class="sep"></span><span>${esc(n.tag)}</span>` : ''}<span class="sep"></span><span>${fmtTime(n.duration)}</span>${(n.commands || []).some(c => c.code) ? '<span class="sep"></span><span title="Has a command to copy">⌨️ command</span>' : ''}</div>
     </div>
-    <button class="play-mini" type="button" aria-label="Play ${esc(title)}"><svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z"/></svg><svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
+    <div class="card-ctl">
+      <button class="heard-mini" type="button" aria-pressed="${!!n.heard_at}" title="${n.heard_at ? 'Heard · tap to mark as unheard' : 'Mark as heard'}" aria-label="${n.heard_at ? 'Mark as unheard' : 'Mark as heard'}"><svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></button>
+      <button class="play-mini" type="button" aria-label="Play ${esc(title)}"><svg viewBox="0 0 24 24" class="i-play"><path d="M8 5v14l11-7z"/></svg><svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zm6 0h4v14h-4z"/></svg></button>
+    </div>
     ${n.title && n.summary ? `<div class="card-summary">${esc(n.summary)}</div>` : ''}
     <div class="card-wave">${waveHTML(n.peaks)}</div>
   </article>`);
   card.addEventListener('click', e => {
     if (e.target.closest('.play-mini')) { e.stopPropagation(); togglePlay(n); return; }
+    if (e.target.closest('.heard-mini')) { e.stopPropagation(); update(n.id, { heard: !n.heard_at }); return; }
+    const wave = e.target.closest('.card-wave');
+    if (wave && seekCard(n, wave, e)) return;
     nav('/n/' + n.id);
   });
   card.addEventListener('keydown', e => { if (e.key === 'Enter') nav('/n/' + n.id); });
   if (n.position && n.duration) setWave(card.querySelector('.card-wave'), n.position / n.duration);
   return card;
+}
+
+// The note in the player: a tap on its wave in the list seeks, as on the player's own wave.
+function seekCard(n, wave, e) {
+  if (!S.current || S.current.id !== n.id) return false;
+  const dur = isFinite(audio.duration) ? audio.duration : n.duration;
+  const r = wave.getBoundingClientRect();
+  if (!dur || !r.width) return false;
+  const frac = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  audio.currentTime = frac * dur;
+  setWave(wave, frac);
+  return true;
 }
 
 /* ------------------------------------------------------------------ facets */
@@ -667,6 +685,7 @@ function syncPlayingUI() {
   $('#player').classList.toggle('is-playing', !!playing);
   for (const c of document.querySelectorAll('.card')) {
     const mine = S.current && c.dataset.id === S.current.id;
+    c.classList.toggle('current', !!mine);
     c.classList.toggle('playing', !!(mine && playing));
     c.classList.toggle('is-playing', !!(mine && playing));
   }
@@ -916,6 +935,7 @@ async function boot() {
   $('#pSpeed').onclick = () => { const i = SPEEDS.indexOf(S.speed); setSpeed(SPEEDS[(i + 1) % SPEEDS.length]); };
   $('#pNext').onclick = () => { S.queue = true; playNext(); };
   $('#playerMeta').onclick = () => { if (S.current) nav('/n/' + S.current.id); };
+  $('#topBack').onclick = () => nav('/');
   $('#queueBtn').onclick = playQueue;
   $('#markAllBtn').onclick = markAllHeard;
   $('#themeBtn').onclick = cycleTheme;

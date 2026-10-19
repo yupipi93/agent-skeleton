@@ -48,7 +48,9 @@ tools/voice-hub/bin/avh doctor                # check every dependency, one line
   Cursor", "Cursor CLI", ...), the repo, branch, folder and session id, detected from
   the environment; see [`avh/agents.py`](avh/agents.py).
 - **Inbox behaviour.** Unheard dot, "Unheard" plays everything unheard oldest first,
-  "Mark all as heard" (two taps), resume where you left off, star, archive, search
+  "Mark all as heard" (two taps), a ✓ on every card to mark one note heard or unheard
+  without opening it, tap the wave of the playing note to seek from the list, resume
+  where you left off, star, archive, search
   (text, ticket keys, projects), filters by agent and project.
 - **Inside the agent chat.** An MCP server (`avh mcp`) gives agents tools to look notes
   up, and clients that render MCP Apps show `voice_note_play` as a player *inside the
