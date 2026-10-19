@@ -128,6 +128,10 @@ select {
 }
 @media (max-width: 959px) {
   body.route-note .list, body.route-note .filters { display: none; }
+  /* Inside a note the page autoscrolls with the transcript: the way back lives in the sticky header. */
+  body.route-note .top-back { display: grid; }
+  body.route-note .search { display: none; }
+  body.route-note .brand { flex: 1; }
 }
 
 /* ------------------------------------------------------------------ list */
@@ -160,6 +164,16 @@ select {
 }
 .play-mini svg { width: 20px; height: 20px; }
 .card.playing .play-mini { background: var(--accent); color: var(--accent-ink); }
+.card-ctl { display: flex; align-items: center; gap: 6px; }
+.heard-mini {
+  width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface);
+  color: var(--muted); display: grid; place-items: center;
+}
+.heard-mini svg { width: 18px; height: 18px; }
+.heard-mini[aria-pressed="false"] { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.heard-mini[aria-pressed="true"] { opacity: .55; }
+.heard-mini:hover { opacity: 1; border-color: var(--accent); }
+.card.current .card-wave { cursor: col-resize; }
 .star-on { color: #e2a63b; }
 .more { display: block; margin: 12px auto 0; }
 .empty { color: var(--muted); text-align: center; padding: 48px 16px; }
@@ -256,6 +270,8 @@ a { color: var(--focus); }
 .offline-banner { background: var(--accent-soft); color: var(--text); border-radius: 10px; padding: 8px 12px; font-size: 13px; margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
+.top-back { display: none; width: 40px; height: 40px; flex: none; border: 1px solid var(--line); background: var(--surface); }
+.top-back svg { width: 22px; height: 22px; }
 .theme-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); font-size: 18px; line-height: 1; flex: none; }
 .speeds button.below { opacity: .45; text-decoration: line-through; }
 .rate-note { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 8px; }
