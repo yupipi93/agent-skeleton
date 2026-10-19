@@ -140,6 +140,12 @@ apply/destroy, force pushes, hard resets, common `rm -rf` spellings, `pkill`, `k
 and project create/delete. Deny lists are a speed bump, not a sandbox; the rules carry
 the real policy.
 
+`skeleton.local.toml` extends these lists with `allow_add`, `ask_add` and `deny_add` under
+`[settings.claude.permissions]`: the general deep merge replaces lists (predictable, and
+the only way to remove an entry), so without additive keys one personal permission meant
+copying the whole kit list and missing every later kit change. The adds are unioned in
+order, de-duplicated, and stripped from the output.
+
 ## D19. Plans are git-ignored
 
 `plans/` is ignored so personal plans never reach the public repository. Remove the line

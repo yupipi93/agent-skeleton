@@ -653,6 +653,34 @@ def deep_merge(base: dict[str, Any], over: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+PERMISSION_LISTS = ("allow", "ask", "deny")
+
+
+def apply_permission_adds(settings: dict[str, Any]) -> dict[str, Any]:
+    """Union `<list>_add` into `<list>` under settings.permissions (allow, ask, deny).
+
+    Order-preserving and de-duplicated; the `_add` keys never reach the output. A plain
+    `allow` / `ask` / `deny` still replaces the kit list (the adds apply on top of it)."""
+    perms = settings.get("permissions")
+    if not isinstance(perms, dict):
+        return settings
+    for key in PERMISSION_LISTS:
+        add_key = f"{key}_add"
+        if add_key not in perms:
+            continue
+        add = perms.pop(add_key)
+        base = perms.get(key, [])
+        for name, val in ((add_key, add), (key, base)):
+            if not (isinstance(val, list) and all(isinstance(x, str) for x in val)):
+                fail(f"[settings.claude.permissions] {name} must be a list of strings")
+        merged: list[str] = []
+        for item in base + add:
+            if item not in merged:
+                merged.append(item)
+        perms[key] = merged
+    return settings
+
+
 def load_toml_file(path: Path) -> dict[str, Any]:
     try:
         with path.open("rb") as f:
@@ -1240,7 +1268,8 @@ def build_plan(state: State) -> Plan:
             content = render_rule_claude(root, r)
             if content is not None:
                 plan.file(f".claude/rules/{r.name}.md", content)
-        settings = deep_merge(load_template(root, "claude"), _cfg_table(settings_extra, "claude"))
+        settings = apply_permission_adds(
+            deep_merge(load_template(root, "claude"), _cfg_table(settings_extra, "claude")))
         hooks = render_hooks(root, state, "claude")
         if hooks:
             merged = settings.get("hooks", {}) if isinstance(settings.get("hooks"), dict) else {}

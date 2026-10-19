@@ -17,7 +17,8 @@ example is [`skeleton.local.example.toml`](../skeleton.local.example.toml).
 | `[hooks] "<id>" = bool` | Hook on or off |
 | `[overrides] "<s>" = "path"` | Link your own fork of a kit skill instead of the kit copy |
 | `[mcp.<name>]` | Override fields of a kit MCP server, `enabled = false`, or declare your own server |
-| `[settings.claude]`, `[settings.gemini]` | Keys deep-merged into the generated settings files |
+| `[settings.claude]`, `[settings.gemini]` | Keys deep-merged into the generated settings files (a list replaces the template's list) |
+| `[settings.claude.permissions] allow_add, ask_add, deny_add` | Entries added to the kit's `allow` / `ask` / `deny` lists, see [Tool settings](#tool-settings) |
 
 Precedence, lowest to highest: `bundle.toml` `default_enabled`, `skeleton.toml`,
 `skeleton.local.toml`; for a skill, rule or hook, an explicit entry beats its bundle state
@@ -176,3 +177,18 @@ secrets or machine paths in `mcp.toml`; machine paths go in `skeleton.local.toml
   includes `AGENTS.md` and `.gemini/RULES.md`). `init` adds hooks, `mcpServers` and
   `skills.disabled`.
 - Personal Claude settings go in `.claude/settings.local.json` (never generated).
+
+Claude permissions from `skeleton.local.toml`: the deep merge replaces lists, so a plain
+`allow`, `ask` or `deny` replaces the kit's whole list. To keep the kit's entries and add
+your own, use the additive keys; they are unioned into the list (kit order first, no
+duplicates) and never appear in the generated file:
+
+```toml
+[settings.claude.permissions]
+allow_add = ["Bash(make test)", "Bash(npm run lint *)"]
+ask_add = ["Bash(git push *)"]
+deny_add = ["Bash(sudo *)"]
+```
+
+Use the plain key only when you mean to drop or move a kit entry (for example a kit
+`allow` you want in `ask`); an `_add` key next to it is applied on top of your list.

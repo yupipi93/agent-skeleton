@@ -140,6 +140,26 @@ class EndToEndRenderTest(RepoTestCase):
         self.assertFalse((r / ".gemini/commands/plan-files.toml").exists())
         self.assertTrue((r / ".claude/skills/demo-command").is_symlink())
 
+    def test_permission_adds_union_into_the_kit_lists(self):
+        kit = json.loads((self.repo / "kit/tool-config/claude/settings.json").read_text())["permissions"]
+        self.local_toml('[settings.claude.permissions]\n'
+                        'allow_add = ["Bash(make test)", "Bash(git status)", "Bash(make test)"]\n'
+                        'ask_add = ["Bash(git push *)"]\n'
+                        'deny = ["Bash(rm -rf *)"]\n'
+                        'deny_add = ["Bash(sudo *)", "Bash(rm -rf *)"]\n')
+        self.run_cli("init")
+        perms = json.loads((self.repo / ".claude/settings.json").read_text())["permissions"]
+        self.assertEqual(perms["allow"], kit["allow"] + ["Bash(make test)"])
+        self.assertEqual(perms["ask"], kit.get("ask", []) + ["Bash(git push *)"])
+        self.assertEqual(perms["deny"], ["Bash(rm -rf *)", "Bash(sudo *)"])  # plain key still replaces
+        self.assertFalse([k for k in perms if k.endswith("_add")])
+
+    def test_permission_add_must_be_a_list_of_strings(self):
+        self.local_toml('[settings.claude.permissions]\nallow_add = "Bash(make)"\n')
+        proc = self.run_cli("init", check=False)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("allow_add must be a list of strings", proc.stderr)
+
     def test_user_profile_rule(self):
         self.local_toml('[user]\nname = "Ada"\nlanguage = "es"\n')
         self.run_cli("init")

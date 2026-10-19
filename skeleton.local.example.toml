@@ -60,5 +60,11 @@
 # Claude Code personal settings are better kept in .claude/settings.local.json.
 # [settings.claude]
 # plansDirectory = "docs/plans"
+# Lists replace the kit's list. To ADD Claude permissions and keep the kit's, use the
+# *_add keys (unioned into allow / ask / deny, kit order first, duplicates dropped):
+# [settings.claude.permissions]
+# allow_add = ["Bash(make test)"]
+# ask_add = ["Bash(git push *)"]
+# deny_add = ["Bash(sudo *)"]
 # [settings.gemini.general]
 # defaultApprovalMode = "default"
