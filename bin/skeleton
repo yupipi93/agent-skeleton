@@ -1978,6 +1978,37 @@ def _iter_scan_files(root: Path):
             yield p
 
 
+LOCAL_SCAN_DIRS = ("skills", "rules", "scripts")
+
+
+def _iter_local_scan_files(root: Path):
+    """Agent-facing files of private bundles: local/bundles/*/{skills,rules,scripts}."""
+    base = root / "local" / "bundles"
+    if not base.is_dir():
+        return
+    for b in sorted(base.iterdir()):
+        if not b.is_dir() or b.is_symlink() or b.name.startswith((".", "_")):
+            continue
+        for sub in LOCAL_SCAN_DIRS:
+            top = b / sub
+            if not top.is_dir() or top.is_symlink():
+                continue
+            for dirpath, dirnames, filenames in os.walk(top):
+                dirnames[:] = sorted(d for d in dirnames if d not in ("__pycache__", ".git", "node_modules"))
+                for fn in sorted(filenames):
+                    p = Path(dirpath) / fn
+                    if fn == ".DS_Store" or p.is_symlink():
+                        continue
+                    yield p
+
+
+def _em_dash_error(root: Path, p: Path, text: str) -> str | None:
+    if EM_DASH not in text:
+        return None
+    line = text[:text.index(EM_DASH)].count("\n") + 1
+    return f"{_rel(root, p)}:{line}: contains U+2014 (em dash); use a comma, colon, parentheses or '-'"
+
+
 def _unquoted_colon(block: str, key: str) -> bool:
     for line in block.split("\n"):
         m = _KEY_RE.match(line)
@@ -2004,6 +2035,7 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
             if m:
                 brew_names.add(m.group(1))
     skill_owner: dict[str, str] = {}
+    rule_owner: dict[str, str] = {"skeleton-user-profile": "the generated [user] profile"}
     hook_ids: dict[str, str] = {}
     for name, b in bundles.items():
         where = f"{_rel(root, b.path)}"
@@ -2065,6 +2097,9 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
                 continue
             if not NAME_RE.match(r.name):
                 errors.append(f"{rw}: rule file names are kebab-case")
+            if r.name in rule_owner:
+                errors.append(f"{rw}: rule name '{r.name}' already used by {rule_owner[r.name]}")
+            rule_owner[r.name] = f"bundle '{name}'"
             if r.apply not in APPLY_MODES:
                 errors.append(f"{rw}: 'apply' must be one of {', '.join(APPLY_MODES)}")
             if not r.description:
@@ -2106,7 +2141,7 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
                     warnings.append(f"{where}/mcp.toml [server.{m.name}]: absolute {key}; machine paths belong "
                                     "in skeleton.local.toml [mcp.<name>]")
 
-    # Repository-wide text checks on tracked kit content (local/ is private and skipped).
+    # Repository-wide text checks on tracked kit content (local/ is private: em dash only, below).
     deny = _load_denylist(root)
     denylist_path = root / "tests" / "denylist.txt"
     for p in _iter_scan_files(root):
@@ -2115,9 +2150,9 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
         except (UnicodeDecodeError, OSError):
             continue
         rel = _rel(root, p)
-        if EM_DASH in text:
-            line = text[:text.index(EM_DASH)].count("\n") + 1
-            errors.append(f"{rel}:{line}: contains U+2014 (em dash); use a comma, colon, parentheses or '-'")
+        dash = _em_dash_error(root, p, text)
+        if dash:
+            errors.append(dash)
         if p == denylist_path:
             continue
         for pat in deny:
@@ -2125,6 +2160,16 @@ def run_checks(root: Path) -> tuple[list[str], list[str]]:
             if m:
                 line = text[:m.start()].count("\n") + 1
                 errors.append(f"{rel}:{line}: matches denylist pattern {pat.pattern!r}")
+    # Private bundles: only the em dash rule (their skills, rules and scripts reach agents);
+    # the denylist is for the public kit and is not applied to private content.
+    for p in _iter_local_scan_files(root):
+        try:
+            text = p.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            continue
+        dash = _em_dash_error(root, p, text)
+        if dash:
+            errors.append(dash)
     return errors, warnings
 
 

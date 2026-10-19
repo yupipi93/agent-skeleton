@@ -39,8 +39,9 @@ git clone git@github.com:acme/agent-bundle.git local/bundles/acme
 bin/skeleton init
 ```
 
-`bin/skeleton check` validates local bundles' structure, but not the kit's text rules
-(em dash, denylist), which only apply to the public kit.
+`bin/skeleton check` validates local bundles' structure and runs the em dash check on their
+agent-facing files (`skills/`, `rules/`, `scripts/`); the denylist only applies to the
+public kit. Skill, rule and hook names must be unique across bundles.
 
 ## Bundle layout
 

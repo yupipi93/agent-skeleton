@@ -23,6 +23,35 @@ class CheckTest(RepoTestCase):
         self.assertEqual(proc.returncode, 1)
         self.assertIn("docs/extra.md:3: contains U+2014", proc.stdout)
 
+    def test_em_dash_in_local_bundles(self):
+        b = self.repo / "local/bundles/priv"
+        write(b / "bundle.toml", 'name = "priv"\ntitle = "P"\nemoji = "x"\ndescription = "d"\n')
+        write(b / "skills/priv-skill/SKILL.md",
+              f"---\nname: priv-skill\ndescription: Private.\n---\n# X\n\nA {EM_DASH} b\n")
+        write(b / "rules/priv-rule.md", f"---\ndescription: x\napply: manual\n---\nA {EM_DASH} b\n")
+        write(b / "scripts/run.sh", f"#!/bin/sh\n# {EM_DASH}\n", mode=0o755)
+        # Workspace notes and other private files are not agent-facing: not scanned.
+        write(b / "workspace/notes.md", f"A {EM_DASH} b\n")
+        # The denylist does not apply to private content.
+        write(b / "skills/priv-skill/references/x.md", "Path /Us" + "ers/someone/project\n")
+        out = self.run_cli("check", check=False).stdout
+        self.assertIn("local/bundles/priv/skills/priv-skill/SKILL.md:7: contains U+2014", out)
+        self.assertIn("local/bundles/priv/rules/priv-rule.md:5: contains U+2014", out)
+        self.assertIn("local/bundles/priv/scripts/run.sh:2: contains U+2014", out)
+        self.assertNotIn("workspace/notes.md", out)
+        self.assertNotIn("denylist", out)
+
+    def test_duplicate_rule_name_across_bundles(self):
+        b = self.repo / "local/bundles/priv"
+        write(b / "bundle.toml", 'name = "priv"\ntitle = "P"\nemoji = "x"\ndescription = "d"\n')
+        write(b / "rules/no-broad-process-kill.md", "---\ndescription: x\napply: manual\n---\nBody\n")
+        write(b / "rules/skeleton-user-profile.md", "---\ndescription: x\napply: manual\n---\nBody\n")
+        proc = self.run_cli("check", check=False)
+        self.assertEqual(proc.returncode, 1)
+        self.assertIn("rule name 'no-broad-process-kill' already used by bundle 'core'", proc.stdout)
+        self.assertIn("rule name 'skeleton-user-profile' already used by the generated [user] profile",
+                      proc.stdout)
+
     def test_denylisted_home_path_and_email(self):
         home_path = "/Us" + "ers/someone/project"
         mail = "someone" + "@" + "corp-mail.io"

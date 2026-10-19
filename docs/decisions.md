@@ -116,9 +116,11 @@ because generated files are machine-local anyway. Remote servers: Claude `type` 
 
 ## D16. `check` scope
 
-Structural checks run on every bundle, kit and local. Text checks (em dash, denylist)
-run only on tracked kit content (kit, docs, bin, tests, root files): private bundles are
-the user's business. The denylist holds generic shapes only (home paths, real-looking
+Structural checks run on every bundle, kit and local, including unique skill, rule and
+hook names (a duplicate would silently overwrite a rendered file). Text checks (em dash,
+denylist) run on tracked kit content (kit, docs, bin, tests, root files). Private bundles
+get only the em dash check, and only on what reaches an agent (`skills/`, `rules/`,
+`scripts/`): their other files and their wording are the user's business. The denylist holds generic shapes only (home paths, real-looking
 emails); its patterns are written so the file does not match itself.
 
 ## D17. Brewfile groups
