@@ -681,6 +681,16 @@ def apply_permission_adds(settings: dict[str, Any]) -> dict[str, Any]:
     return settings
 
 
+def merge_hooks(settings: dict[str, Any], hooks: dict[str, list]) -> None:
+    """Append rendered hooks to the template's own hooks, event by event."""
+    if not hooks:
+        return
+    merged = settings.get("hooks", {}) if isinstance(settings.get("hooks"), dict) else {}
+    for ev, entries in hooks.items():
+        merged.setdefault(ev, []).extend(entries)
+    settings["hooks"] = merged
+
+
 def load_toml_file(path: Path) -> dict[str, Any]:
     try:
         with path.open("rb") as f:
@@ -1270,12 +1280,7 @@ def build_plan(state: State) -> Plan:
                 plan.file(f".claude/rules/{r.name}.md", content)
         settings = apply_permission_adds(
             deep_merge(load_template(root, "claude"), _cfg_table(settings_extra, "claude")))
-        hooks = render_hooks(root, state, "claude")
-        if hooks:
-            merged = settings.get("hooks", {}) if isinstance(settings.get("hooks"), dict) else {}
-            for ev, entries in hooks.items():
-                merged.setdefault(ev, []).extend(entries)
-            settings["hooks"] = merged
+        merge_hooks(settings, render_hooks(root, state, "claude"))
         if disabled_skills:
             so = settings.get("skillOverrides", {}) if isinstance(settings.get("skillOverrides"), dict) else {}
             for n in disabled_skills:
@@ -1298,9 +1303,7 @@ def build_plan(state: State) -> Plan:
 
     if "gemini" in tools:
         settings = deep_merge(load_template(root, "gemini"), _cfg_table(settings_extra, "gemini"))
-        hooks = render_hooks(root, state, "gemini")
-        if hooks:
-            settings["hooks"] = hooks
+        merge_hooks(settings, render_hooks(root, state, "gemini"))
         servers = render_mcp(root, state, "gemini")
         if servers:
             settings["mcpServers"] = servers

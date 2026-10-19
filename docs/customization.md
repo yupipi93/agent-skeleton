@@ -177,6 +177,8 @@ secrets or machine paths in `mcp.toml`; machine paths go in `skeleton.local.toml
   includes `AGENTS.md` and `.gemini/RULES.md`). `init` adds hooks, `mcpServers` and
   `skills.disabled`.
 - Personal Claude settings go in `.claude/settings.local.json` (never generated).
+- Hooks rendered from bundles are appended to any `hooks` a template already has, per
+  event, for Claude and Gemini alike.
 
 Claude permissions from `skeleton.local.toml`: the deep merge replaces lists, so a plain
 `allow`, `ask` or `deny` replaces the kit's whole list. To keep the kit's entries and add

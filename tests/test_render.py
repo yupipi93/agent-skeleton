@@ -160,6 +160,20 @@ class EndToEndRenderTest(RepoTestCase):
         self.assertEqual(proc.returncode, 1)
         self.assertIn("allow_add must be a list of strings", proc.stderr)
 
+    def test_gemini_template_hooks_are_merged_not_replaced(self):
+        self.add_demo_bundle()
+        tpl = self.repo / "kit/tool-config/gemini/settings.json"
+        data = json.loads(tpl.read_text())
+        own = {"matcher": "*", "hooks": [{"type": "command", "command": "true", "name": "template-own"}]}
+        data["hooks"] = {"AfterAgent": [own], "Notification": [own]}
+        tpl.write_text(json.dumps(data))
+        self.run_cli("init")
+        hooks = json.loads((self.repo / ".gemini/settings.json").read_text())["hooks"]
+        self.assertEqual(hooks["AfterAgent"][0], own)
+        self.assertGreater(len(hooks["AfterAgent"]), 1)
+        self.assertEqual(hooks["Notification"], [own])
+        self.assertIn("BeforeTool", hooks)
+
     def test_user_profile_rule(self):
         self.local_toml('[user]\nname = "Ada"\nlanguage = "es"\n')
         self.run_cli("init")
