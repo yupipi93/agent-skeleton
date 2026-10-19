@@ -36,8 +36,9 @@ tools/voice-hub/bin/avh doctor                # check every dependency, one line
   `notify.sh --code`) and its short written explanation (`--brief`) open the detail
   view in a "For you" box, each command with its own copy button.
 - **Links that play.** `/n/<id>?play=1` (what agents paste) starts the note. If a hub
-  tab is already open, the server hands the note to it before the new tab even loads,
-  and the new tab closes itself. Otherwise the new tab plays, or asks for one tap when
+  tab is already open, the server hands the note to it before the new tab even loads
+  (that tab opens the note's page, even if another note was open), and the new tab
+  closes itself. Otherwise the new tab plays, or asks for one tap when
   the browser blocks sound. Scripts get the same hand-off without opening a tab:
   `avh play <id>` asks an open hub tab to play the note and reports whether one did,
   which is how `voice-note.py` decides between "it is already playing" and opening the
