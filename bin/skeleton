@@ -1529,6 +1529,8 @@ def run_init(root: Path, tools: list[str] | None = None, force: bool = False,
 def cmd_init(ctx: argparse.Namespace) -> int:
     root = ctx.root
     tools = _parse_tools(ctx.tools)
+    src = " (from SKELETON_ROOT)" if getattr(ctx, "root_from_env", False) else ""
+    info(STYLE.dim(f"root: {root}{src}"))
     if ctx.check:
         state = resolve_state(root, tools)
         diffs = diff_plan(root, build_plan(state))
@@ -2311,6 +2313,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     color = sys.stdout.isatty() and not args.no_color and not os.environ.get("NO_COLOR")
     STYLE = Style(color)
+    args.root_from_env = not args.root and bool(os.environ.get("SKELETON_ROOT"))
     args.root = (args.root.expanduser().resolve() if args.root else default_root())
     if not getattr(args, "command", None):
         parser.print_help()

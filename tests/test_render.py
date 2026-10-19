@@ -1,5 +1,7 @@
 """Unit tests of the per-tool renderers (rules, hooks, MCP, Gemini commands)."""
 import json
+import subprocess
+import sys
 import unittest
 from pathlib import Path
 
@@ -173,6 +175,14 @@ class EndToEndRenderTest(RepoTestCase):
         self.assertGreater(len(hooks["AfterAgent"]), 1)
         self.assertEqual(hooks["Notification"], [own])
         self.assertIn("BeforeTool", hooks)
+
+    def test_init_prints_its_root(self):
+        self.assertIn(f"root: {self.repo}\n", self.run_cli("init").stdout)
+        env = self.env()
+        env["SKELETON_ROOT"] = str(self.repo)
+        proc = subprocess.run([sys.executable, str(self.repo / "bin/skeleton"), "init", "--check"],
+                              cwd=str(self.tmp), env=env, capture_output=True, text=True)
+        self.assertIn(f"root: {self.repo} (from SKELETON_ROOT)", proc.stdout)
 
     def test_user_profile_rule(self):
         self.local_toml('[user]\nname = "Ada"\nlanguage = "es"\n')
