@@ -280,7 +280,10 @@ async function openDetail(id) {
     catch { box.innerHTML = '<div class="empty"><b>Note not found</b>It may have been archived.</div>'; return; }
   }
   if (S.detailId !== id) return;
+  const switched = box.dataset.id !== id;
+  box.dataset.id = id;
   renderDetail(note);
+  if (switched) box.scrollTop = 0;
   if (window.matchMedia('(max-width: 959px)').matches) window.scrollTo(0, 0);
   // Deep link from a chat: get it ready so one tap plays it.
   if (!S.current) loadNote(note, { autoplay: false });
@@ -290,6 +293,7 @@ function closeDetail() {
   S.detailId = null;
   document.body.classList.remove('route-note');
   $('#detail').replaceChildren();
+  delete $('#detail').dataset.id;
   for (const c of document.querySelectorAll('.card.active')) c.classList.remove('active');
 }
 
@@ -460,13 +464,14 @@ async function resynthNote(n, button) {
 }
 
 /* ------------------------------------------------------------------- theme */
-const THEMES = [['auto', '🌓', 'Theme: automatic'], ['light', '☀️', 'Theme: light'], ['dark', '🌙', 'Theme: dark']];
+const TAP_TO_CHANGE = ' · tap to change it';
+const THEMES = [['auto', '🌓', 'Theme: automatic, follows the system'], ['light', '☀️', 'Theme: light'], ['dark', '🌙', 'Theme: dark']];
 function applyTheme(t) {
   const root = document.documentElement;
   if (t === 'light' || t === 'dark') root.dataset.theme = t; else delete root.dataset.theme;
   const [, icon, label] = THEMES.find(x => x[0] === t) || THEMES[0];
   const b = $('#themeBtn');
-  if (b) { b.textContent = icon; b.title = label; b.setAttribute('aria-label', label); }
+  if (b) { b.textContent = icon; b.title = label + TAP_TO_CHANGE; b.setAttribute('aria-label', label); }
   const dark = t === 'dark' || (t !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
   for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.content = dark ? '#121316' : '#f6f5f2';
 }
@@ -476,6 +481,58 @@ function cycleTheme() {
   store.set('theme', next);
   applyTheme(next);
   toast(THEMES.find(x => x[0] === next)[2]);
+}
+
+/* ---------------------------------------------------------------- tooltips */
+/* What each control does, shown when the pointer rests on it or it gets keyboard focus.
+ * Keyed by selector so the templates stay readable; a function gets the element and
+ * answers for its current state, since the title is set at hover time. */
+const noteInDetail = () => S.byId.get(S.detailId) || {};
+const TIPS = [
+  ['#topBack, [data-back]', 'Back to the list of notes (Esc)'],
+  ['#q', 'Search titles, text, tickets and projects (shortcut: /)'],
+  ['#statusChips [data-status=""]', 'Show every note'],
+  ['#statusChips [data-status="unheard"]', 'Show only the notes you have not heard yet'],
+  ['#statusChips [data-status="starred"]', 'Show only starred notes'],
+  ['#agentChips .chip', b => b.getAttribute('aria-pressed') === 'true' ? 'Clear the agent filter'
+    : 'Show only notes from ' + b.textContent.replace(/\s*\d+\s*$/, '').trim()],
+  ['#markAllBtn', b => b.dataset.armed ? 'Tap again to confirm'
+    : 'Mark every unheard note as heard (asks for a second tap to confirm)'],
+  ['#tagSel', 'Filter by project'],
+  ['.card .play-mini', b => b.closest('.card').classList.contains('is-playing') ? 'Pause' : 'Play without opening the note'],
+  ['.card .heard-mini', b => b.getAttribute('aria-pressed') === 'true'
+    ? 'Heard. Tap to mark it as unheard again' : 'Unheard. Tap to mark it as heard without opening it'],
+  ['.card.current .card-wave', 'Tap to jump to that point of the audio'],
+  ['[data-act="back"], #pBack', 'Back 10 seconds (← or J)'],
+  ['[data-act="play"], #pPlay', 'Play or pause (space or K)'],
+  ['[data-act="fwd"], #pFwd', 'Forward 30 seconds (→ or L)'],
+  ['.speeds button:not(.below)', b => 'Listen at ' + b.textContent + ' (shortcuts: < and >)'],
+  ['#pSpeed', 'Change the speed, one step per tap (shortcuts: < and >)'],
+  ['#pNext', 'Skip to the next unheard note (N)'],
+  ['#playerMeta', 'Open the note that is playing'],
+  ['.wave input[type=range]', 'Tap or drag to jump to another point'],
+  ['[data-act="star"]', () => noteInDetail().starred ? 'Remove from starred' : 'Star it: you will find it under the Starred filter'],
+  ['[data-act="heard"]', () => noteInDetail().heard_at ? 'Mark it as unheard again' : 'Mark it as heard'],
+  ['[data-act="share"]', 'Copy the link to this note, to open it on another device or share it in a chat'],
+  ['.actions a[download]', 'Download the audio as MP3'],
+  ['.actions a[href^="https://chat.google.com/"]', 'Open the original message in Google Chat'],
+  ['[data-act="archive"]', () => noteInDetail().archived ? 'Put it back in the list' : 'Archive: it leaves the list but is not deleted'],
+  ['.transcript span', 'Tap to jump to this sentence'],
+  ['a.ticket', a => 'Open ' + a.textContent + ' in a new tab'],
+  ['button.ticket, .cmd .copy', 'Copy to the clipboard'],
+];
+function tipFor(node) {
+  for (const [sel, tip] of TIPS) if (node.matches(sel)) return typeof tip === 'function' ? tip(node) : tip;
+  return null;
+}
+// Walk up from what is under the pointer to the first control with something to say;
+// a control with no entry and no title falls back to its aria-label.
+function showTip(e) {
+  for (let node = e.target; node instanceof Element; node = node.parentElement) {
+    const tip = tipFor(node) || (!node.title && node.matches('button, a, input, select') ? node.getAttribute('aria-label') : null);
+    if (tip) { node.title = tip; return; }
+    if (node.title) return;
+  }
 }
 
 /* -------------------------------------------------------- play from a link */
@@ -518,7 +575,7 @@ async function onRemotePlay(d, ack) {
   if (ack) ack();
   else fetch('/api/play-ack', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-AVH': '1' },
     body: JSON.stringify({ req: d.req, tab: TAB }) }).catch(() => {});
-  if (document.hidden || !S.detailId) nav('/n/' + note.id);
+  if (S.detailId !== note.id) nav('/n/' + note.id);
   toast('🔊 Playing: ' + (note.title || note.summary || 'voice note'));
 }
 
@@ -949,6 +1006,8 @@ async function boot() {
     if (a) { e.preventDefault(); nav(a.getAttribute('href')); }
   });
   document.addEventListener('keydown', onKey);
+  document.addEventListener('pointerover', showTip);
+  document.addEventListener('focusin', showTip);
   window.addEventListener('popstate', route);
   window.addEventListener('pagehide', savePosition);
   document.addEventListener('visibilitychange', () => {
