@@ -1827,6 +1827,14 @@ def cmd_projects(ctx: argparse.Namespace) -> int:
         else:
             info(f"⚠️ projects_dir {pdir} does not exist (set [paths] projects_dir in skeleton.local.toml)")
         return 0
+    if ctx.action == "sync":
+        # Rebuild the code-workspace from the links already in projects/, linking nothing.
+        dangling = [n for n in _linked_projects(root) if not (links / n).exists()]
+        for n in dangling:
+            info(f"⚠️ **{n}** points to a missing directory: {os.readlink(links / n)}")
+        path = regenerate_workspace(root)
+        info(f"🗂️  {path.name} updated ({len(_linked_projects(root))} project(s))")
+        return 0
     if not ctx.names:
         fail("give at least one project name")
     rc = 0
@@ -1962,7 +1970,7 @@ def _iter_scan_files(root: Path):
         for fn in sorted(filenames):
             if rel_dir == Path(".") and fn in SCAN_SKIP_FILES:
                 continue
-            if fn.endswith(".code-workspace") or fn == ".DS_Store":
+            if fn.endswith(".code-workspace") or fn in (".DS_Store", ".git"):
                 continue
             p = Path(dirpath) / fn
             if p.is_symlink():
@@ -2196,8 +2204,8 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("args", nargs=argparse.REMAINDER)
     s.set_defaults(func=cmd_setup)
 
-    s = sub.add_parser("projects", help="link repositories into projects/ (add, remove, list)")
-    s.add_argument("action", choices=("add", "remove", "list"))
+    s = sub.add_parser("projects", help="link repositories into projects/ (add, remove, list, sync)")
+    s.add_argument("action", choices=("add", "remove", "list", "sync"))
     s.add_argument("names", nargs="*")
     s.set_defaults(func=cmd_projects)
 

@@ -155,6 +155,26 @@ class InitTest(RepoTestCase):
         self.assertTrue((code / "alpha-service").is_dir())
         self.assertEqual(self.run_cli("projects", "add", "zzz", check=False).returncode, 1)
 
+    def test_projects_sync_rewrites_workspace_without_linking(self):
+        code = self.home / "code"
+        (code / "alpha-service").mkdir(parents=True)
+        (self.repo / "projects").mkdir(exist_ok=True)
+        os.symlink(str(code / "alpha-service"), self.repo / "projects/alpha-service")
+        os.symlink(str(code / "gone"), self.repo / "projects/gone")
+        ws_path = self.repo / "agent-skeleton.code-workspace"
+        ws_path.write_text(json.dumps({"folders": [], "settings": {"editor.tabSize": 2}}))
+        out = self.run_cli("projects", "sync").stdout
+        self.assertIn("2 project(s)", out)
+        self.assertIn("gone", out)
+        ws = json.loads(ws_path.read_text())
+        self.assertEqual([f["path"] for f in ws["folders"]],
+                         [".", "projects/alpha-service", "projects/gone"])
+        self.assertEqual(ws["settings"], {"editor.tabSize": 2})
+        self.assertEqual(sorted(os.listdir(self.repo / "projects")), ["alpha-service", "gone"])
+        before = ws_path.read_text()
+        self.run_cli("projects", "sync")
+        self.assertEqual(ws_path.read_text(), before)
+
     def test_new_skill_scaffold_passes_check(self):
         self.run_cli("new-skill", "core", "demo-thing", "--user-invocable")
         text = (self.repo / "kit/bundles/core/skills/demo-thing/SKILL.md").read_text()

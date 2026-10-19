@@ -59,6 +59,8 @@ calls that keep secrets off the command line, `secret-patterns.txt` for the text
 Repositories are linked, never copied: `bin/skeleton projects add <name>` symlinks
 `<projects_dir>/<name>` into `projects/` with fuzzy matching and refreshes
 `agent-skeleton.code-workspace`. `projects remove` deletes only the symlink.
+`projects sync` rebuilds the code-workspace from the links already in `projects/`
+(after links were edited by hand) and links nothing.
 
 ## Result line for commands
 

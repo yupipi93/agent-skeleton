@@ -33,6 +33,11 @@ class CheckTest(RepoTestCase):
         self.assertIn("docs/leak.md:2", proc.stdout)
         self.assertNotIn("docs/leak.md:3", proc.stdout)
 
+    def test_worktree_git_pointer_file_is_not_scanned(self):
+        # A git worktree (or submodule) has a .git FILE holding an absolute gitdir path.
+        write(self.repo / ".git", "gitdir: /Us" + "ers/someone/repo/.git/worktrees/1\n")
+        self.assertIn("check** passed", self.run_cli("check").stdout)
+
     def test_skill_rules(self):
         long_desc = "x" * 301
         write(self.repo / "kit/bundles/core/skills/long-one/SKILL.md",

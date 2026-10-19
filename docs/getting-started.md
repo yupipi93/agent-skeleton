@@ -72,6 +72,7 @@ every generated path are git-ignored. See [customization.md](customization.md).
 bin/skeleton projects list          # what is linked, what is available
 bin/skeleton projects add my-api    # fuzzy match under [paths] projects_dir (default ~/code)
 bin/skeleton projects remove my-api # removes only the symlink
+bin/skeleton projects sync          # rebuild the code-workspace from projects/, links nothing
 ```
 
 Linked projects appear under `projects/` and in `agent-skeleton.code-workspace`, a
@@ -98,5 +99,5 @@ The `skill-authoring` skill explains what makes a skill trigger reliably.
 | `bin/skeleton check [--strict]` | Lint the kit |
 | `bin/skeleton test` | Run the test suite |
 | `bin/skeleton setup <bundle>` | Run a bundle's `setup.sh` |
-| `bin/skeleton projects add\|remove\|list` | Manage `projects/` symlinks |
+| `bin/skeleton projects add\|remove\|list\|sync` | Manage `projects/` symlinks |
 | `bin/skeleton new-skill <bundle> <name> [--user-invocable]` | Scaffold a skill |
