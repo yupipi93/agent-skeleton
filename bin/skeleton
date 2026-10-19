@@ -1532,14 +1532,17 @@ def cmd_list(ctx: argparse.Namespace) -> int:
         info(STYLE.bold(f"🦴 agent-skeleton bundles") + STYLE.dim(f"  (tools: {', '.join(state.tools)})"))
         info("")
         w = max([len(n) for n in state.bundles] + [6]) + 2
-        info(STYLE.dim("    " + _pad("BUNDLE", w) + "STATE  SKILLS  RULES  HOOKS  MCP  DESCRIPTION"))
+        any_local = any(b.local for b in state.bundles.values())
+        sw = 11 if any_local else 7
+        info(STYLE.dim("    " + _pad("BUNDLE", w) + _pad("STATE", sw)
+                       + "SKILLS  RULES  HOOKS  MCP  DESCRIPTION"))
         for name, b in state.bundles.items():
             on = state.bundle_on[name]
             tag = _state_label(on) + (STYLE.cyan(" local") if b.local else "")
             desc = b.description
             if len(desc) > 60:
                 desc = desc[:57] + "..."
-            row = (f"{b.emoji}  " + _pad(STYLE.bold(name) if on else name, w) + _pad(tag, 7)
+            row = (f"{b.emoji}  " + _pad(STYLE.bold(name) if on else name, w) + _pad(tag, sw)
                    + _pad(str(len(b.skills)), 8) + _pad(str(len(b.rules)), 7)
                    + _pad(str(len(b.hooks)), 7) + _pad(str(len(b.mcp)), 5) + STYLE.dim(desc))
             info(row)

@@ -74,7 +74,7 @@ LANG_CODES = {"en": "en-US", "es": "es-ES"}
 GOOGLE_VOICE = {"en": "en-US-Chirp3-HD-Charon", "es": "es-ES-Chirp3-HD-Charon"}
 SAY_LOCALES = {"en": ("en_US", "en_GB", "en_"), "es": ("es_ES", "es_MX", "es_")}
 SAY_PREFERRED = {"en": ("Samantha", "Alex", "Daniel", "Karen", "Moira", "Tessa"),
-                 "es": ("Monica", "Paulina", "Marisol")}
+                 "es": ("Mónica", "Monica", "Paulina", "Marisol")}
 # Novelty voices `say` also ships: never picked automatically.
 SAY_NOVELTY = {"Albert", "Bad News", "Bahh", "Bells", "Boing", "Bubbles", "Cellos", "Good News",
                "Jester", "Organ", "Superstar", "Trinoids", "Whisper", "Wobble", "Zarvox"}
