@@ -1,5 +1,5 @@
 """The voice bundle's Stop hook, driven with crafted transcripts. Hermetic: temp HOME,
-temp config, temp log; nothing touches a real channel."""
+temp config, temp log, AGENT_SKELETON_ROOT at the temp dir; nothing touches a real channel."""
 import datetime
 import json
 import os
@@ -54,7 +54,8 @@ class HookTest(unittest.TestCase):
         env = {k: v for k, v in os.environ.items() if k not in CONFIG_KEYS}
         env.update({"HOME": str(self.home), "NOTIFY_CONFIG": str(conf or self.conf),
                     "VOICE_LOG": str(log or self.log),
-                    "VOICE_HOOK_STATE": str(self.tmp / "state"), "PYTHONDONTWRITEBYTECODE": "1"})
+                    "VOICE_HOOK_STATE": str(self.tmp / "state"), "PYTHONDONTWRITEBYTECODE": "1",
+                    "AGENT_SKELETON_ROOT": str(self.tmp)})
         return subprocess.run([sys.executable, str(HOOK), "--client", client],
                               input=json.dumps(event), capture_output=True, text=True, env=env,
                               timeout=30)

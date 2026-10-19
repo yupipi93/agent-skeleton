@@ -138,6 +138,12 @@ def _parse_env(path):
     return out
 
 
+def skeleton_root():
+    """The checkout whose skeleton.toml / skeleton.local.toml give [user]: this kit, or
+    AGENT_SKELETON_ROOT when set (tests point it at an empty temp dir)."""
+    return os.path.expanduser(os.environ.get("AGENT_SKELETON_ROOT") or KIT_ROOT)
+
+
 def _skeleton_user():
     """[user] name and language from skeleton.local.toml / skeleton.toml, when readable."""
     try:
@@ -145,9 +151,10 @@ def _skeleton_user():
     except ImportError:
         return {}
     out = {}
+    root = skeleton_root()
     for name in ("skeleton.toml", "skeleton.local.toml"):
         try:
-            with open(os.path.join(KIT_ROOT, name), "rb") as fh:
+            with open(os.path.join(root, name), "rb") as fh:
                 user = tomllib.load(fh).get("user") or {}
         except (OSError, ValueError):
             continue

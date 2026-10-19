@@ -132,6 +132,10 @@ KEY=VALUE, mode 0600, written by the wizard; every key can also be an environmen
 | `VOICE_HOOK_LONG_SECONDS`, `VOICE_HOOK_TOOL_CALLS`, `VOICE_HOOK_REPLY_CHARS` | `240`, `15`, `1200` | Stop hook thresholds (`0` disables one) |
 | `VOICE_HOOK_OPTOUT` | `no audio` | Phrase(s), comma separated, that skip the hook for one turn |
 
+`[user]` is read (Python 3.11+) from `skeleton.toml` and `skeleton.local.toml` in this
+checkout; the environment variable `AGENT_SKELETON_ROOT` points it at another directory
+(the tests use an empty one, so a personal `language` never leaks into a run).
+
 `speakers.json` names repositories out loud when "the payments api agent" is not good
 enough:
 

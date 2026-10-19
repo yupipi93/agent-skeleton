@@ -1,7 +1,8 @@
 """voice-note.py and notify.sh, end to end against a local fake Telegram / Chat webhook,
 a fake hub CLI, and (once) the real hub on a free port.
 
-Hermetic: temp HOME, temp config, temp logs, temp AVH_HOME, and AVH_PORT set to a free
+Hermetic: temp HOME, temp config, temp logs, temp AVH_HOME, an empty AGENT_SKELETON_ROOT
+(so the user's skeleton.local.toml [user] is never read), and AVH_PORT set to a free
 port in every run, so a hub the user runs on the default port is never touched. The only
 network is 127.0.0.1. Real channels and real TTS are never called: audio comes from a
 fake `say` on PATH (tests that need ffmpeg with libopus skip themselves without it), and
@@ -32,7 +33,7 @@ CONFIG_KEYS = ("NOTIFY_CHANNELS", "TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "GCH
                "TTS_GCLOUD_ACCOUNT", "TTS_QUOTA_PROJECT", "TTS_LANG", "TTS_VOICE", "TTS_SPEED",
                "VOICE_GREETING", "VOICE_USER_NAME", "VOICE_HUB", "VOICE_HUB_CLI",
                "VOICE_HUB_OPEN", "VOICE_HUB_OPENER", "AVH_HOME", "AVH_PORT", "AVH_CONFIG",
-               "AVH_PUBLIC_URL", "NOTIFY_TZ")
+               "AVH_PUBLIC_URL", "NOTIFY_TZ", "AGENT_SKELETON_ROOT")
 
 
 def have_opus():
@@ -129,6 +130,8 @@ class VoiceScriptsTest(unittest.TestCase):
         self.bin = self.tmp / "bin"
         self.bin.mkdir()
         self.hub_port = str(free_port())        # nothing listens here unless a test serves
+        self.skeleton_root = self.tmp / "skeleton"  # no skeleton.local.toml: never the user's
+        self.skeleton_root.mkdir()
         self.extra_env = {}
         say = self.bin / "say"
         say.write_text(FAKE_SAY % sys.executable)
@@ -154,6 +157,7 @@ class VoiceScriptsTest(unittest.TestCase):
         env = {k: v for k, v in os.environ.items() if k not in CONFIG_KEYS}
         env.update({"HOME": str(self.home), "NOTIFY_CONFIG": str(self.conf),
                     "AGENT_SKELETON_STATE": str(self.tmp / "state"),
+                    "AGENT_SKELETON_ROOT": str(self.skeleton_root),
                     "VOICE_LOG": str(self.tmp / "voice.log"), "NOTIFY_LOG": str(self.tmp / "notify.log"),
                     "TELEGRAM_API_BASE": self.base, "PYTHONDONTWRITEBYTECODE": "1",
                     "AVH_HOME": str(self.tmp / "hub-data"), "AVH_PORT": self.hub_port,
@@ -191,6 +195,16 @@ class VoiceScriptsTest(unittest.TestCase):
         self.assertNotIn("example.com", proc.stderr.split("--- spoken ---")[1])
         proc = self.run_script([sys.executable, str(VOICE), "--plan", "--lang", "es", "Listo."])
         self.assertIn("Hola" + ", Ana. Soy el agente de ", proc.stderr)
+
+    @unittest.skipUnless(sys.version_info >= (3, 11), "[user] is read with tomllib")
+    def test_skeleton_user_comes_from_agent_skeleton_root(self):
+        (self.skeleton_root / "skeleton.local.toml").write_text(
+            '[user]\nname = "Bea"\nlanguage = "es"\n', encoding="utf-8")
+        self.config("TTS_ENGINE=none\n")
+        proc = self.run_script([sys.executable, str(VOICE), "--plan", "Listo."])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("lang=es", proc.stderr)
+        self.assertIn("Hola" + ", Bea.", proc.stderr)
 
     def test_channels_none_sends_nothing(self):
         self.config("NOTIFY_CHANNELS=none\nTTS_ENGINE=none\n")
