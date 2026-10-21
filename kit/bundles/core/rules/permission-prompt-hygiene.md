@@ -15,7 +15,9 @@ prompts fire, never evade them.
    so the user approves once with the whole picture.
 3. **Never disguise a command to dodge a prompt.** No wrappers, aliases, `env` prefixes,
    `bash -c`, or re-implementations in another language whose purpose is to stop a rule
-   from matching. A prompt may be an organisation's security control.
+   from matching. A prompt may be an organisation's security control. The same goes for
+   an auto-accept hook (skill `permission-auto-accept`): its deny-list keeps gated and
+   policy-forced commands.
 4. **Mutating commands stay alone** (apply, push, delete) with their own approval. Never
    bundle them with read-only checks.
 5. **Files go through the editor tools** (Write / Edit), not shell redirects or heredocs
