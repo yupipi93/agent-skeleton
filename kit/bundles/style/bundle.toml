@@ -1,8 +1,8 @@
 name = "style"
 title = "House style"
 emoji = "✒️"
-description = "Optional writing-style rules for generated text, starting with no em dash."
-version = "0.1.0"
+description = "Writing style for generated text: no em dash, no AI-writing tells, a checker for drafts."
+version = "0.2.0"
 default_enabled = false
 requires = ["core"]
 brew = []

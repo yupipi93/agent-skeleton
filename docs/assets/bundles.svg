@@ -146,10 +146,10 @@
       <text x="40" y="53" text-anchor="middle" class="emoji" font-size="24">✒️</text>
       <text x="74" y="51" class="mono" font-size="20" font-weight="700" fill="#f3f5fa">style</text>
       <rect x="224" y="32" width="48" height="24" rx="12" fill="#232a3b" stroke="#55607a"/><text x="248" y="49" text-anchor="middle" font-size="12" font-weight="700" fill="#aab3c5">OFF</text>
-      <text x="22" y="96" font-size="15" fill="#c9d1e3">Optional house style for</text>
-      <text x="22" y="117" font-size="15" fill="#c9d1e3">generated text, starting with</text>
-      <text x="22" y="138" font-size="15" fill="#c9d1e3">no em dash.</text>
-      <text x="22" y="166" font-size="13" fill="#c4b5fd" fill-opacity="0.95">1 rule</text>
+      <text x="22" y="96" font-size="15" fill="#c9d1e3">House style: no em dash,</text>
+      <text x="22" y="117" font-size="15" fill="#c9d1e3">no AI-writing tells, a</text>
+      <text x="22" y="138" font-size="15" fill="#c9d1e3">checker for drafts.</text>
+      <text x="22" y="166" font-size="13" fill="#c4b5fd" fill-opacity="0.95">1 skill, 2 rules</text>
     </g>
     <g transform="translate(960 508)">
       <rect x="1" y="1" width="288" height="184" rx="18" fill="#0f1420" stroke="#55607a" stroke-width="2" stroke-dasharray="7 6"/>

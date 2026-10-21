@@ -17,7 +17,7 @@ see what is on with `bin/skeleton list`.
 | 🍎 | [mac](mac.md) | on | 1 | | | | Install, check and repair the kit on macOS |
 | 🎧 | [voice](voice.md) | off | 3 | 1 | 1 | `setup voice` | Spoken summaries, text notifications, the Stop hook, the local voice hub |
 | 📬 | [google](google.md) | off | 3 | | | `setup google` | Google Chat, Docs and Gmail (read-only) through your own OAuth client |
-| ✒️ | [style](style.md) | off | | 1 | | | Optional house style: no em dash |
+| ✒️ | [style](style.md) | off | 1 | 2 | | | House style: no em dash, prose without AI-writing tells, a draft checker |
 
 Every bundle requires `core`. Homebrew dependencies are grouped per bundle in the
 [`Brewfile`](../../Brewfile); `bin/install-mac.sh` installs the groups of the enabled ones.
