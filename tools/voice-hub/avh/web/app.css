@@ -249,7 +249,7 @@ a { color: var(--focus); }
 .i-pause { display: none; }
 .is-playing .i-pause { display: block; }
 .is-playing .i-play { display: none; }
-.speed { min-width: 54px; height: 34px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); font-weight: 700; font-variant-numeric: tabular-nums; }
+.speed { min-width: 54px; height: 34px; padding: 0 24px 0 12px; border-radius: 999px; border: 1px solid var(--line); color: var(--text); background: var(--surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%238a8f98' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center / 9px 6px; font: inherit; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; text-align-last: center; appearance: none; -webkit-appearance: none; cursor: pointer; }
 @media (max-width: 520px) {
   .top { flex-wrap: wrap; }
   .search { order: 3; flex-basis: 100%; }
