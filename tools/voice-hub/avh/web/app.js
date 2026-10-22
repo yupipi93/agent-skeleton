@@ -507,7 +507,7 @@ const TIPS = [
   ['[data-act="play"], #pPlay', 'Play or pause (space or K)'],
   ['[data-act="fwd"], #pFwd', 'Forward 30 seconds (→ or L)'],
   ['.speeds button:not(.below)', b => 'Listen at ' + b.textContent + ' (shortcuts: < and >)'],
-  ['#pSpeed', 'Change the speed, one step per tap (shortcuts: < and >)'],
+  ['#pSpeed', 'Pick the speed (shortcuts: < and >)'],
   ['#pNext', 'Skip to the next unheard note (N)'],
   ['#playerMeta', 'Open the note that is playing'],
   ['.wave input[type=range]', 'Tap or drag to jump to another point'],
@@ -723,7 +723,7 @@ function setSpeed(eff) {
   S.speed = eff;
   store.set('speed', eff);
   applySpeed();
-  $('#pSpeed').textContent = fmtSpeed(eff);
+  $('#pSpeed').value = String(eff);
   for (const b of document.querySelectorAll('.speeds button')) b.setAttribute('aria-pressed', String(+b.dataset.speed === eff));
   updateSub();
 }
@@ -970,7 +970,8 @@ async function boot() {
   try { S.cfg = await api('/api/config'); }
   catch { S.cfg = { agents: { unknown: { name: 'Agent', badge: 'AI', color: '#8a8f98' } }, ticket_links: {}, default_speech_rate: 1 }; }
   if (!SPEEDS.includes(S.speed)) S.speed = 1;
-  $('#pSpeed').textContent = fmtSpeed(S.speed);
+  $('#pSpeed').innerHTML = SPEEDS.map(x => `<option value="${x}">${fmtSpeed(x)}</option>`).join('');
+  $('#pSpeed').value = String(S.speed);
 
   audio.addEventListener('timeupdate', onTime);
   audio.addEventListener('play', () => { S.remote = null; announce(true); syncPlayingUI(); syncPosition(); });
@@ -989,7 +990,7 @@ async function boot() {
   $('#pPlay').onclick = () => { if (S.current) togglePlay(S.current); };
   $('#pBack').onclick = () => { audio.currentTime = Math.max(0, audio.currentTime - 10); };
   $('#pFwd').onclick = () => { audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 30); };
-  $('#pSpeed').onclick = () => { const i = SPEEDS.indexOf(S.speed); setSpeed(SPEEDS[(i + 1) % SPEEDS.length]); };
+  $('#pSpeed').onchange = e => { setSpeed(+e.target.value); e.target.blur(); };
   $('#pNext').onclick = () => { S.queue = true; playNext(); };
   $('#playerMeta').onclick = () => { if (S.current) nav('/n/' + S.current.id); };
   $('#topBack').onclick = () => nav('/');
