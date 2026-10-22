@@ -19,6 +19,8 @@ Run the end-to-end ticket lifecycle on the text after the command:
 2. Keep the invariants on every run:
    - outbound text gate on every Jira, PR or chat write (rule `outbound-text-safety`);
    - Jira through `kit/bundles/jira/scripts/` (rule `jira-cli-first`);
+   - when the work starts: In Progress plus the start comment, once (`jira-tickets`,
+     "Picking a ticket up");
    - branch in a worktree before the first edit, PR after (rule
      `worktree-for-project-writes`, skill `git-branch-pr-workflow`);
    - no `terraform apply` or other mutating cloud command without an explicit yes.

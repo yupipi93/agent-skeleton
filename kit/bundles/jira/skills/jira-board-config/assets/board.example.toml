@@ -32,6 +32,10 @@ owners_file = "docs/OWNERS.md"    # module -> owner table, or a CODEOWNERS path
 style = "portal"                  # browse | portal
 portal_id = "3"                   # /servicedesk/customer/portal/<id>
 
+[comments.start]                  # posted once when work starts (skill jira-tickets); pre-approved, send verbatim
+en = "👋 Hi! We're on it. We'll keep you posted here."
+es = "👋 ¡Hola! Ya estamos con ello. Te iremos contando por aquí."
+
 [transitions]
 start = "In Progress"
 done = "Done"

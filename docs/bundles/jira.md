@@ -8,7 +8,7 @@ comment, transition safely, and keep secrets out of everything you send.
 
 | Skill | Use it for |
 |---|---|
-| `jira-tickets` | The script table, reading a ticket properly, propose-then-create, the visual description template, closing the loop after a task, rewording around the text guard |
+| `jira-tickets` | The script table, reading a ticket properly, propose-then-create, picking a ticket up (In Progress plus the start comment), the visual description template, closing the loop after a task, rewording around the text guard |
 | `jira-board-config` | The per-board TOML template (project, issue and request types, title format, assignee and reporter, `public_comments`, transitions, routing) and where to keep it |
 | `devops-ticket-workflow` | The end-to-end lifecycle: read ticket and forms, choose the repo, worktree branch, change, plan, PR, client-safe comment, transition |
 | `ticket` | Slash command: `/ticket PROJ-123` or `/ticket <description>` runs that lifecycle |
@@ -32,6 +32,7 @@ comment, transition safely, and keep secrets out of everything you send.
 | `kit/bundles/jira/scripts/jira-link.sh` | Link two issues; `--list-types`, `--dry-run` |
 | `kit/bundles/jira/scripts/jira-forms.sh` | Attached forms (Jira Forms), which MCP scopes cannot read |
 | `kit/bundles/jira/scripts/jira-forms-context.sh` | The `jira-forms-context` hook (see Hooks) |
+| `kit/bundles/jira/scripts/jira-start-comment-reminder.sh` | The `jira-start-comment` hook (see Hooks) |
 | `kit/bundles/jira/scripts/jira-mcp-guard.sh` | The `jira-mcp-text-guard` hook (see Hooks) |
 | `kit/bundles/jira/scripts/lib/atlassian.sh` | Shared config loader and `atl_request` (credentials through `curl -K -`) |
 | `kit/bundles/jira/scripts/lib/adf.py`, `lib/jira_json.py` | Markdown to ADF and back; renderers, transition resolver, payload builder (unit tested offline) |
@@ -44,6 +45,7 @@ Exit codes: 0 ok, 2 usage, 3 missing config, 4 API error, 5 blocked by the text 
 | Hook | Event | Tools | What it does |
 |---|---|---|---|
 | `jira-forms-context` | prompt_submit | Claude Code, Gemini CLI | Jira keys in the prompt: fetch their Attached forms and add them as context, framed as untrusted user-supplied data. Silent unless the bundle is configured; at most 3 keys, about 12 s, `curl --max-time` per request. `JIRA_FORMS_HOOK=off` disables it, `JIRA_FORMS_HOOK_PROJECTS=PROJ,OPS` narrows it |
+| `jira-start-comment` | after_tool (shell) | Claude Code, Gemini CLI | After `jira-transition.sh <KEY> --to <in-progress status>`, adds a reminder to post the board's start comment once. Sends nothing itself; `JIRA_START_COMMENT_HOOK=off` disables it |
 | `jira-mcp-text-guard` | before_tool | all | Runs the core text guard over Atlassian or Jira MCP tool calls (raw payload and decoded strings) and blocks secrets |
 
 ## Configuration

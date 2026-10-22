@@ -17,6 +17,11 @@ pull request titles and bodies, chat or email messages, wiki pages.
    or destination does not cover another.
 4. **Send** only then, and report the real result (URL, comment id).
 
+Standing templates are the one exception to step 3: a fixed text the user wrote down
+for repeated use in a board config (the `[comments.start]` "we are on it" comment) is
+approved by being there. Send it verbatim after the scan; any change to it needs the
+full approval.
+
 Never include a credential, token, key, password, private key or connection string
 with credentials. Reference a secret by its name or location, never by its value.
 

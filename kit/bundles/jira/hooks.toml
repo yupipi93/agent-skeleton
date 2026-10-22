@@ -9,6 +9,15 @@ tools = ["claude", "gemini"]
 description = "Adds the Attached forms of Jira keys in the prompt as untrusted context"
 
 [[hook]]
+id = "jira-start-comment"
+event = "after_tool"
+run = "scripts/jira-start-comment-reminder.sh"
+timeout_s = 5
+tools = ["claude", "gemini"]
+match = { shell = true }
+description = "After a ticket moves to In Progress, reminds the agent to post the start comment"
+
+[[hook]]
 id = "jira-mcp-text-guard"
 event = "before_tool"
 run = "scripts/jira-mcp-guard.sh"

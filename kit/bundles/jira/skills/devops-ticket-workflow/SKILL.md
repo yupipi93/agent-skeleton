@@ -19,7 +19,8 @@ terraform bundle is on.
 
 The order below is canonical; skip or merge steps when the situation calls for it (a
 read-only investigation has no branch). The invariants never move: **text gate on every
-write, branch before the first edit, PR after, no apply without an explicit yes**.
+write, start comment when the work begins, branch before the first edit, PR after, no
+apply without an explicit yes**.
 
 ## 1. Read or create the ticket
 
@@ -49,13 +50,19 @@ Follow `git-worktrees`: lease a worktree with the branch created in the same cal
 named `<type>/<short-desc>-PROJ-123`. Every edit and command for this ticket runs in
 that worktree, never in the shared checkout. One ticket per branch and per worktree.
 
-## 4. Pick the ticket up
+## 4. Pick the ticket up: In Progress and the start comment
+
+As soon as the work starts (before the first change, not at the end):
 
 ```bash
 kit/bundles/jira/scripts/jira-transition.sh PROJ-123 --to "In Progress"
+kit/bundles/jira/scripts/jira-comment.py PROJ-123 --comment "<board start template>"
 ```
 
-Optionally add a one-line comment ("Picked this up.") through the gate.
+The start comment is **mandatory**: a short, friendly line that tells the requester
+someone is on their ticket. Follow "Picking a ticket up" in `jira-tickets` (template
+from the board config, requester's language, once per ticket). The `jira-start-comment`
+hook reminds you right after the transition.
 
 ## 5. Change and validate
 

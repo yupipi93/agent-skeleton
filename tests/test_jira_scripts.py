@@ -220,6 +220,7 @@ class WriteScriptsTest(ScriptCase):
     def test_help_everywhere(self):
         for name in ("jira-issue.sh", "jira-search.sh", "jira-create.sh", "jira-transition.sh",
                      "jira-link.sh", "jira-forms.sh", "jira-forms-context.sh", "jira-mcp-guard.sh",
+                     "jira-start-comment-reminder.sh",
                      "jira-comment.py"):
             proc = self.run_script(name, "--help")
             self.assertEqual(proc.returncode, 0, name + proc.stderr)
@@ -404,6 +405,32 @@ class HookScriptsTest(ScriptCase):
         self.assertIn("PROJ-5", ctx["additionalContext"])
         cur = self.run_script("jira-forms-context.sh", "--client", "cursor", stdin=prompt)
         self.assertEqual(cur.stdout, "")
+
+    def test_start_comment_reminder(self):
+        def run(command, client="claude"):
+            event = json.dumps({"tool_name": "Bash", "tool_input": {"command": command}})
+            return self.run_script("jira-start-comment-reminder.sh", "--client", client, stdin=event)
+
+        proc = run('kit/bundles/jira/scripts/jira-transition.sh PROJ-5 --to "In Progress"')
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        ctx = json.loads(proc.stdout)["hookSpecificOutput"]
+        self.assertEqual(ctx["hookEventName"], "PostToolUse")
+        self.assertIn("PROJ-5", ctx["additionalContext"])
+        self.assertIn("[comments.start]", ctx["additionalContext"])
+        gem = json.loads(run("jira-transition.sh PROJ-5 --to=Start", "gemini").stdout)
+        self.assertEqual(gem["hookSpecificOutput"]["hookEventName"], "AfterTool")
+        for quiet in ("jira-transition.sh PROJ-5 --to Done",
+                      'jira-transition.sh PROJ-5 --to "In Progress" --dry-run',
+                      "jira-transition.sh PROJ-5 --list",
+                      "git status"):
+            self.assertEqual(run(quiet).stdout, "", quiet)
+        self.assertEqual(run("jira-transition.sh PROJ-5 --to Start", "cursor").stdout, "")
+        self.assertEqual(run("jira-transition.sh PROJ-5 --to Start", "claude").returncode, 0)
+        off = self.run_script("jira-start-comment-reminder.sh", "--client", "claude",
+                              stdin=json.dumps({"tool_input": {"command": "jira-transition.sh PROJ-5 --to Start"}}),
+                              JIRA_START_COMMENT_HOOK="off")
+        self.assertEqual(off.stdout, "")
+        self.assertEqual(self.run_script("jira-start-comment-reminder.sh", stdin="not json").returncode, 0)
 
     def test_mcp_guard(self):
         clean = {"tool_name": "mcp__atlassian__addCommentToJiraIssue", "tool_input": {"body": "Done"}}

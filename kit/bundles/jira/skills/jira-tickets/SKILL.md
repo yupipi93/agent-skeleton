@@ -89,6 +89,26 @@ least Objective and Acceptance criteria. Also supported: fenced code, `> [!warni
 panels, `[[PROJ-123]]` issue cards, `@[Name](accountId)` mentions. Links stay plain
 URLs so they are easy to copy.
 
+## Picking a ticket up
+
+When work on a ticket starts (inbound key, or a ticket you just created and are about to
+work), before the first change:
+
+1. **Transition** to the board's `[transitions] start` status:
+   `jira-transition.sh PROJ-123 --to "In Progress"`.
+2. **Start comment, once per ticket.** Read the comments first (`jira-issue.sh PROJ-123
+   --comments`); skip if a start comment from you is already there or the user filed the
+   ticket for themselves. Send the board's `[comments.start]` template **verbatim** in
+   the requester's language (`en` / `es` keys, else `comment_language`):
+   `jira-comment.py PROJ-123 --comment "👋 Hi! We're on it. We'll keep you posted here."`.
+   No board template: use that default line.
+3. Keep it that simple: no plan, no ETA, no internals. Anything beyond the template is a
+   normal comment and goes through the full gate.
+
+A verbatim board template is pre-approved text (rule `outbound-text-safety`): scan it,
+send it, and report the comment id. The `jira-start-comment` hook reminds the agent
+right after a transition to an in-progress status.
+
 ## Closing the loop after a task
 
 When work tied to a ticket is delivered (merged, applied, verified):
