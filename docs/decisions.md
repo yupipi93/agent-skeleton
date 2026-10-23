@@ -286,3 +286,23 @@ session's hub note, since the hub keeps voice notes, not text. The Stop hook sta
 until `notify.env` exists, so enabling the bundle never blocks a turn before setup has run.
 The setup wizard installs the hub first and offers the external channels as an advanced,
 optional step.
+
+## D36. Bitbucket access tokens through a driven browser, straight into Secret Manager
+
+Bitbucket Cloud offers no API that creates repository, project or workspace access tokens,
+and shows each token once. `tools/bitbucket-access-bootstrap` therefore drives the web UI
+in the user's own Chrome on a tool-only profile, attached over CDP on 127.0.0.1, after a
+human sign-in in a plain window (no automated password entry, which SSO and bot checks
+reject). The token is piped to `gcloud secrets versions add --data-file=-`, read back and
+compared by hash; it never reaches argv, stdout or logs. A 0600 stash file outside the repo
+holds it only between the dialog and the matched read-back, so a crash cannot lose the one
+copy. `create` prints a plan and acts only with `--yes`, so the agent shows the plan and
+waits for approval. The secret container is expected to come from IaC (CMEK, labels, IAM);
+`--create-secret` is the opt-in exception, and then it must match the IaC's replication
+(`--secret-locations`, `--kms-key` with a per-project `auto:` key ring lookup, written as a
+replication policy file), because Terraform replaces a secret whose replication differs.
+One token can go to several projects. The `admin` scope preset carries
+`pullrequest:write` so a Cloud Build connection token also serves Renovate. Bitbucket
+refuses duplicate token names, so rotation creates a dated name. Playwright lives in the tool's own venv, outside
+the kit's stdlib-only scripts, and the tests cover everything but the browser steps. Paths
+avoid the words "token" and "secret", which managed Claude Code policies commonly deny.

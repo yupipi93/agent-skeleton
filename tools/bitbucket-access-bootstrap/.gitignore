@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+
+# Everything the tool produces lives outside the repo (see bab/config.py), but guard
+# against a BAB_HOME pointed inside it: a browser profile holds a live Atlassian
+# session and a stash file holds a token.
+chrome-profile/
+stash/
+runs/
+*.png

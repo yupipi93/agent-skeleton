@@ -157,7 +157,8 @@ class ReposSyncTest(GitScriptCase):
 class GitBundleShapeTest(unittest.TestCase):
     def test_skills_rules_and_command(self):
         names = sorted(p.name for p in (GIT / "skills").iterdir() if (p / "SKILL.md").exists())
-        self.assertEqual(names, ["git-branch-pr-workflow", "git-conventional-commits", "git-pr-bitbucket",
+        self.assertEqual(names, ["git-bitbucket-access-bootstrap", "git-branch-pr-workflow",
+                                 "git-conventional-commits", "git-pr-bitbucket",
                                  "git-pr-github", "git-worktrees", "worktree"])
         self.assertIn("disable-model-invocation: true", (GIT / "skills/worktree/SKILL.md").read_text())
         self.assertTrue((GIT / "rules/worktree-for-project-writes.md").exists())

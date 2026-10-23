@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# Run bitbucket-access-bootstrap. `bab install` creates its venv (Playwright only;
+# no browser download, it drives the Google Chrome already installed).
+# push and verify need no venv: they fall back to python3 when it is missing.
+set -euo pipefail
+
+TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BAB_HOME="${BAB_HOME:-$HOME/.local/share/bitbucket-access-bootstrap}"
+VENV="$BAB_HOME/venv"
+
+if [ "${1:-}" = "install" ]; then
+  PY="${BAB_PYTHON:-python3}"
+  if ! "$PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)'; then
+    echo "bab: needs Python 3.11 or newer ($PY); set BAB_PYTHON" >&2
+    exit 2
+  fi
+  mkdir -p "$BAB_HOME"
+  chmod 700 "$BAB_HOME"
+  "$PY" -m venv "$VENV"
+  "$VENV/bin/pip" install --quiet --upgrade pip
+  "$VENV/bin/pip" install --quiet -r "$TOOL_DIR/requirements.txt"
+  echo "installed in $VENV"
+  exit 0
+fi
+
+PY="$VENV/bin/python"
+[ -x "$PY" ] || PY="${BAB_PYTHON:-python3}"
+PYTHONPATH="$TOOL_DIR${PYTHONPATH:+:$PYTHONPATH}" exec "$PY" -m bab "$@"

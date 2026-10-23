@@ -11,6 +11,7 @@ requests that always carry a real description, on GitHub or Bitbucket Cloud.
 | `git-branch-pr-workflow` | The task loop: worktree, branch naming, commits, host detection, the mandatory PR body |
 | `git-pr-github` | `gh` based PRs: drafts, reviewers, labels, `gh pr checks`, updates, merge policy |
 | `git-pr-bitbucket` | Bitbucket Cloud PRs through the REST API: token scopes, reviewers by account id, errors |
+| `git-bitbucket-access-bootstrap` | Repository, project or workspace access tokens created in a real Chrome (`tools/bitbucket-access-bootstrap`) and stored in GCP Secret Manager without printing them |
 | `git-worktrees` | treehouse v3 leases (`get --lease --json -b`), `.worktreeinclude`, safe return, parallel tasks, plain `git worktree` fallback |
 | `worktree` | Slash command: `/worktree PROJ-1 \| PROJ-2` runs each task in its own worktree end to end |
 
