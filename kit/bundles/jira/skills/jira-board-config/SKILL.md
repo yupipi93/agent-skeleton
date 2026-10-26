@@ -34,7 +34,7 @@ Every key is optional except `project`.
 | `public_comments` | `true` when requesters or customers read every comment; `comment_language` |
 | `[comments.start]` | The "we are on it" comment posted once when work starts, per language (`en`, `es`); a standing, pre-approved template |
 | `[links]` | `style` `browse` or `portal` (service desk customers cannot open `/browse/`), `portal_id` |
-| `[transitions]` | Status names `start`, `done`, `cancel`; `done_needs_hop` |
+| `[transitions]` | Status names `start`, `done`, `cancel`, `waiting` (blocked on someone outside the team, rule `jira-waiting-status`); `done_needs_hop` |
 | `[routing]` | Signals (repo names, keywords) that send new work to this board |
 | `[time_tracking]` | Optional: the skill or command to run after Done |
 

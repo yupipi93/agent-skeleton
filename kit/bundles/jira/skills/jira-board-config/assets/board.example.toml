@@ -40,6 +40,7 @@ es = "👋 ¡Hola! Ya estamos con ello. Te iremos contando por aquí."
 start = "In Progress"
 done = "Done"
 cancel = "Cancelled"              # never used to close work
+waiting = "Waiting for customer"  # blocked on someone outside the team; often pauses the SLA
 done_needs_hop = true             # Done is not reachable from To Do
 
 # Signals that route new work to this board (repos, products, clients, cloud projects).

@@ -109,6 +109,14 @@ A verbatim board template is pre-approved text (rule `outbound-text-safety`): sc
 send it, and report the comment id. The `jira-start-comment` hook reminds the agent
 right after a transition to an in-progress status.
 
+## Blocked on someone else
+
+As soon as finishing a ticket depends on something that is not ours (the requester's
+answer, another team's merge or review, an access grant), move it to the board's
+`[transitions] waiting` status: `jira-transition.sh PROJ-123 --to "Waiting for customer"`.
+On service desks it usually pauses the SLA clock. Make sure a comment says what is
+awaited. When the answer arrives, move it back to `start`. Rule `jira-waiting-status`.
+
 ## Closing the loop after a task
 
 When work tied to a ticket is delivered (merged, applied, verified):
@@ -120,7 +128,8 @@ When work tied to a ticket is delivered (merged, applied, verified):
    With `public_comments = true` on the board: short, a couple of emojis, the outcome and
    any user-facing link only; no PR or commit links, internals or how it was solved.
    Internal boards can carry the PR link and a short technical note.
-3. **Transition**: `jira-transition.sh PROJ-123 --to Done`. It resolves by status name,
+3. **Transition**: `jira-transition.sh PROJ-123 --to Done`, or to the `waiting` status if
+   part of the work still depends on someone else (section above). It resolves by status name,
    takes at most one hop through an in-progress status, and never closes through a
    cancellation. Unfamiliar board: `--list` or `--dry-run` first.
 4. **Time tracking (optional hook point).** If the user or a private bundle defines a
