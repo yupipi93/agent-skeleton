@@ -92,9 +92,10 @@ if [ "$SECTION_CHECK" -eq 1 ]; then
   fi
 fi
 
-# Repository coordinates from the origin remote when not given.
+# Repository coordinates from the origin remote when not given. SSH remotes may use
+# either bitbucket.org or ssh.bitbucket.org (Bitbucket's dedicated SSH host).
 remote="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || true)"
-path="$(printf '%s' "$remote" | sed -E 's#^(https?://([^@/]+@)?bitbucket\.org/|git@bitbucket\.org:|ssh://git@bitbucket\.org/)##; s#\.git$##')"
+path="$(printf '%s' "$remote" | sed -E 's#^(https?://([^@/]+@)?bitbucket\.org/|git@(ssh\.)?bitbucket\.org:|ssh://git@(ssh\.)?bitbucket\.org/)##; s#\.git$##')"
 if [ "$path" != "$remote" ] && [ -n "$path" ]; then
   [ -n "$WORKSPACE" ] || WORKSPACE="${path%%/*}"
   [ -n "$REPO" ] || REPO="${path#*/}"
