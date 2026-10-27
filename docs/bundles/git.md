@@ -26,7 +26,7 @@ requests that always carry a real description, on GitHub or Bitbucket Cloud.
 | Script | Purpose |
 |---|---|
 | `kit/bundles/git/scripts/pr-github.sh` | `gh pr create --body-file` with a section check (Summary, Changes, Validation, Rollback), ticket link, default reviewers, labels, `--draft`, `--dry-run`, `--template` |
-| `kit/bundles/git/scripts/pr-bitbucket.sh` | Bitbucket Cloud PR via REST: workspace, repo and branch from the origin remote, reviewers by account id or `{uuid}`, credentials through `curl -K -`, `--dry-run`, `--template` |
+| `kit/bundles/git/scripts/pr-bitbucket.sh` | Bitbucket Cloud PR via REST: workspace, repo and branch from the origin remote, reviewers by account id or `{uuid}`, credentials through `curl -K -`, `--dry-run`, `--template`; `--merge ID` merges an open PR on request (`--strategy`, idempotent on an already merged PR) |
 | `kit/bundles/git/scripts/repos-sync.sh` | For humans: stash, `pull --rebase` and pop every repo under `projects/` in parallel; refuses to run inside an agent session unless `--i-am-human`; `--dry-run` lists the repos |
 
 Both PR scripts run the core text guard over the title and body and refuse to send on a

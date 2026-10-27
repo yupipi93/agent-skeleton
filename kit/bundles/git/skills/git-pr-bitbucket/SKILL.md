@@ -1,6 +1,6 @@
 ---
 name: git-pr-bitbucket
-description: "Open Bitbucket Cloud pull requests through the REST API with a full hand-written body, ticket link and reviewers by account id, using an Atlassian API token. Use when opening a PR on a bitbucket.org repository or when Bitbucket PR credentials need setting up."
+description: "Open or merge Bitbucket Cloud pull requests through the REST API: full hand-written body, ticket link, reviewers by account id, Atlassian API token. Use when opening or merging a PR on a bitbucket.org repository, or when Bitbucket PR credentials need setting up."
 ---
 
 # Bitbucket pull requests
@@ -65,5 +65,16 @@ and body pass `kit/bundles/core/scripts/text-guard.sh`; exit 5 means blocked.
 | 400 reviewer errors | an id is wrong, or the author is listed as a reviewer |
 | 404 | workspace or repo slug wrong (check `git remote get-url origin`) |
 
-Merging stays with the user unless they ask; then use the web UI or the merge endpoint
-with their chosen strategy, after checks and approvals.
+## Merge (only when the user asks)
+
+Merging stays with the user unless they ask for it. Then, after checks and approvals:
+
+```bash
+kit/bundles/git/scripts/pr-bitbucket.sh -C "$WT" --merge 42 [--strategy squash] [--dry-run]
+```
+
+It reads the PR first: `OPEN` merges, `MERGED` exits 0 (safe to re-run), anything else
+exits 4. Without `--strategy` the repository's default merge method applies; the source
+branch is closed unless `--no-close-source`. A long merge (HTTP 202) is polled for up to
+two minutes. `--message` overrides the merge commit message and passes the text guard.
+After it, `git fetch` and confirm the merge commit on the destination branch.

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 #
 # pr-bitbucket.sh: open a Bitbucket Cloud pull request with a full, hand-written body
-# through the REST API (never Bitbucket's auto-generated description).
+# through the REST API (never Bitbucket's auto-generated description), or merge one.
 #
 # Usage:
 #   kit/bundles/git/scripts/pr-bitbucket.sh --title "fix(dns): correct TTL" --body-file pr.md \
 #     [--ticket PROJ-123] [--reviewer '{uuid}' | --reviewer 557058:abcd...] [--dry-run]
+#   kit/bundles/git/scripts/pr-bitbucket.sh --merge 42 [--strategy squash] [--dry-run]
 #   kit/bundles/git/scripts/pr-bitbucket.sh --template > pr.md
 #
 # Options:
@@ -25,6 +26,12 @@
 #   --em-dash            also block U+2014 (house style)
 #   --dry-run            print the request and payload, send nothing
 #   --template           print the body scaffold and exit
+#
+# Merge mode (--merge ID): merges an OPEN pull request. Only on the user's explicit
+# request; a PR that is already merged exits 0, a declined one exits 4.
+#   --strategy S         merge_commit, squash or fast_forward (default: the repo's)
+#   --message TEXT       merge commit message (default: Bitbucket's)
+#   --no-close-source    keep the source branch (default: close it)
 #
 # Credentials: ~/.config/agent-skeleton/atlassian.env (or environment variables):
 #   BITBUCKET_EMAIL (falls back to JIRA_EMAIL) and BITBUCKET_API_TOKEN, an Atlassian API
@@ -46,6 +53,7 @@ need() { if [ "$2" -lt 2 ]; then echo "error: $1 needs a value" >&2; exit 2; fi;
 
 TITLE="" BODY_FILE="" REPO="" WORKSPACE="" SOURCE="" DEST="" TICKET="" REPO_DIR="."
 REVIEWERS="" USE_DEFAULTS=1 CLOSE_SOURCE=true SECTION_CHECK=1 GUARD_ARGS="" DRY_RUN=0
+MERGE="" STRATEGY="" MESSAGE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --title) need "$1" $#; TITLE="$2"; shift 2 ;;
@@ -62,17 +70,140 @@ while [ $# -gt 0 ]; do
     --no-section-check) SECTION_CHECK=0; shift ;;
     --em-dash) GUARD_ARGS="--em-dash"; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
+    --merge) need "$1" $#; MERGE="$2"; shift 2 ;;
+    --strategy) need "$1" $#; STRATEGY="$2"; shift 2 ;;
+    --message) need "$1" $#; MESSAGE="$2"; shift 2 ;;
     --template) /bin/bash "$HERE/pr-github.sh" --template; exit 0 ;;
     -h|--help) usage; exit 0 ;;
     *) echo "error: unknown argument $1" >&2; exit 2 ;;
   esac
 done
 
+TMP="$(mktemp -d "${TMPDIR:-/tmp}/pr-bitbucket.XXXXXX")"
+trap 'rm -rf "$TMP"' EXIT
+
+# Repository coordinates from the origin remote when not given. SSH remotes may use
+# either bitbucket.org or ssh.bitbucket.org (Bitbucket's dedicated SSH host).
+resolve_repo() {
+  local remote path
+  remote="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || true)"
+  path="$(printf '%s' "$remote" | sed -E 's#^(https?://([^@/]+@)?bitbucket\.org/|git@(ssh\.)?bitbucket\.org:|ssh://git@(ssh\.)?bitbucket\.org/)##; s#\.git$##')"
+  if [ "$path" != "$remote" ] && [ -n "$path" ]; then
+    [ -n "$WORKSPACE" ] || WORKSPACE="${path%%/*}"
+    [ -n "$REPO" ] || REPO="${path#*/}"
+  fi
+  [ -n "$WORKSPACE" ] || WORKSPACE="$(secrets_get "$CFG" BITBUCKET_WORKSPACE)"
+  [ -n "$WORKSPACE" ] || { echo "error: no workspace (--workspace, BITBUCKET_WORKSPACE or a bitbucket.org origin)" >&2; exit 2; }
+  [ -n "$REPO" ] || { echo "error: no repository (--repo, or run inside a clone with a bitbucket.org origin)" >&2; exit 2; }
+}
+
+load_creds() {
+  EMAIL="$(secrets_get "$CFG" BITBUCKET_EMAIL)"
+  [ -n "$EMAIL" ] || EMAIL="$(secrets_get "$CFG" JIRA_EMAIL)"
+  TOKEN="$(secrets_get "$CFG" BITBUCKET_API_TOKEN)"
+  if [ -z "$EMAIL" ] || [ -z "$TOKEN" ]; then
+    echo "error: missing BITBUCKET_EMAIL (or JIRA_EMAIL) and BITBUCKET_API_TOKEN in $CFG or the environment." >&2
+    echo "Run 'bin/skeleton setup jira' and answer yes to the Bitbucket question." >&2
+    exit 3
+  fi
+  secrets_check_mode "$CFG"
+}
+
+# api METHOD URL OUT [PAYLOAD]: prints the HTTP code; headers land in OUT.headers.
+api() {
+  local data=()
+  [ -n "${4:-}" ] && data=(-H "Content-Type: application/json" --data-binary "@$4")
+  secrets_curl_basic "$EMAIL" "$TOKEN" -sS --connect-timeout 10 --max-time 60 \
+    -X "$1" -H "Accept: application/json" ${data[@]+"${data[@]}"} -D "$3.headers" -o "$3" \
+    -w '%{http_code}' "$2" 2>"$TMP/curl.err" || true
+}
+
+api_fail() {
+  if [ -z "$1" ] || [ "$1" = "000" ]; then
+    echo "error: could not reach the Bitbucket API: $(head -c 300 "$TMP/curl.err")" >&2
+    exit 4
+  fi
+  echo "error: Bitbucket API returned HTTP $1" >&2
+  python3 -c '
+import json, sys
+try:
+    d = json.load(open(sys.argv[1]))
+    print((d.get("error") or {}).get("message") or json.dumps(d)[:500])
+except Exception:
+    print(open(sys.argv[1], errors="replace").read()[:500])' "$2" >&2 || true
+  exit 4
+}
+
+if [ -n "$MERGE" ]; then
+  case "$MERGE" in *[!0-9]*) echo "error: --merge needs a PR number" >&2; exit 2 ;; esac
+  case "$STRATEGY" in ""|merge_commit|squash|fast_forward) ;;
+    *) echo "error: --strategy must be merge_commit, squash or fast_forward" >&2; exit 2 ;;
+  esac
+  resolve_repo
+  if [ -n "$MESSAGE" ]; then
+    printf '%s\n' "$MESSAGE" >"$TMP/message.md"
+    # shellcheck disable=SC2086
+    if ! /bin/bash "$CORE/text-guard.sh" --file "$TMP/message.md" $GUARD_ARGS; then
+      echo "BLOCKED: the PR was not merged. Remove the secret-shaped text and retry." >&2
+      exit 5
+    fi
+  fi
+  STRATEGY="$STRATEGY" CLOSE="$CLOSE_SOURCE" MESSAGE="$MESSAGE" python3 -c '
+import json, os
+p = {"type": "pullrequest", "close_source_branch": os.environ["CLOSE"] == "true"}
+if os.environ["STRATEGY"]:
+    p["merge_strategy"] = os.environ["STRATEGY"]
+if os.environ["MESSAGE"]:
+    p["message"] = os.environ["MESSAGE"]
+print(json.dumps(p, ensure_ascii=False, indent=2))' >"$TMP/payload.json"
+  PR_URL="$API/repositories/$WORKSPACE/$REPO/pullrequests/$MERGE"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "dry-run: POST $PR_URL/merge"
+    cat "$TMP/payload.json"
+    exit 0
+  fi
+  load_creds
+
+  code="$(api GET "$PR_URL" "$TMP/pr.json")"
+  [ "$code" = "200" ] || api_fail "$code" "$TMP/pr.json"
+  state="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("state",""))' "$TMP/pr.json")"
+  case "$state" in
+    OPEN) ;;
+    MERGED) echo "ok: PR #$MERGE is already merged"; exit 0 ;;
+    *) echo "error: PR #$MERGE is $state, not OPEN" >&2; exit 4 ;;
+  esac
+
+  code="$(api POST "$PR_URL/merge" "$TMP/merge.json" "$TMP/payload.json")"
+  if [ "$code" = "202" ]; then
+    # Long merges run as a task: poll its status link until it settles (max ~2 min).
+    task="$(awk 'tolower($1) == "location:" { sub(/\r$/, "", $2); print $2 }' "$TMP/merge.json.headers")"
+    [ -n "$task" ] || { echo "error: merge accepted (202) without a task link; check the PR in the UI" >&2; exit 4; }
+    for _ in $(seq 1 24); do
+      sleep 5
+      code="$(api GET "$task" "$TMP/task.json")"
+      [ "$code" = "200" ] || api_fail "$code" "$TMP/task.json"
+      status="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("task_status",""))' "$TMP/task.json")"
+      [ "$status" = "SUCCESS" ] || continue
+      python3 -c 'import json,sys; json.dump(json.load(open(sys.argv[1])).get("merge_result") or {}, open(sys.argv[2], "w"))' \
+        "$TMP/task.json" "$TMP/merge.json"
+      code=200
+      break
+    done
+    [ "$code" = "200" ] || { echo "error: merge of PR #$MERGE still pending after 2 minutes; check the PR in the UI" >&2; exit 4; }
+  fi
+  [ "$code" = "200" ] || api_fail "$code" "$TMP/merge.json"
+  python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+h = ((d.get("merge_commit") or {}).get("hash") or "")[:12]
+print("ok: PR #%s merged%s %s" % (sys.argv[2], " as " + h if h else "",
+      ((d.get("links") or {}).get("html") or {}).get("href", "")))' "$TMP/merge.json" "$MERGE"
+  exit 0
+fi
+
 [ -n "$TITLE" ] || { echo "error: --title is required" >&2; exit 2; }
 [ -n "$BODY_FILE" ] || { echo "error: --body-file is required (--template prints a scaffold)" >&2; exit 2; }
 
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/pr-bitbucket.XXXXXX")"
-trap 'rm -rf "$TMP"' EXIT
 if [ "$BODY_FILE" = "-" ]; then
   cat >"$TMP/body.md"
 else
@@ -92,17 +223,7 @@ if [ "$SECTION_CHECK" -eq 1 ]; then
   fi
 fi
 
-# Repository coordinates from the origin remote when not given. SSH remotes may use
-# either bitbucket.org or ssh.bitbucket.org (Bitbucket's dedicated SSH host).
-remote="$(git -C "$REPO_DIR" remote get-url origin 2>/dev/null || true)"
-path="$(printf '%s' "$remote" | sed -E 's#^(https?://([^@/]+@)?bitbucket\.org/|git@(ssh\.)?bitbucket\.org:|ssh://git@(ssh\.)?bitbucket\.org/)##; s#\.git$##')"
-if [ "$path" != "$remote" ] && [ -n "$path" ]; then
-  [ -n "$WORKSPACE" ] || WORKSPACE="${path%%/*}"
-  [ -n "$REPO" ] || REPO="${path#*/}"
-fi
-[ -n "$WORKSPACE" ] || WORKSPACE="$(secrets_get "$CFG" BITBUCKET_WORKSPACE)"
-[ -n "$WORKSPACE" ] || { echo "error: no workspace (--workspace, BITBUCKET_WORKSPACE or a bitbucket.org origin)" >&2; exit 2; }
-[ -n "$REPO" ] || { echo "error: no repository (--repo, or run inside a clone with a bitbucket.org origin)" >&2; exit 2; }
+resolve_repo
 [ -n "$SOURCE" ] || SOURCE="$(git -C "$REPO_DIR" symbolic-ref --short HEAD 2>/dev/null || true)"
 [ -n "$SOURCE" ] || { echo "error: no source branch (--source, or run on a branch)" >&2; exit 2; }
 if [ -z "$DEST" ]; then
@@ -155,20 +276,8 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
-EMAIL="$(secrets_get "$CFG" BITBUCKET_EMAIL)"
-[ -n "$EMAIL" ] || EMAIL="$(secrets_get "$CFG" JIRA_EMAIL)"
-TOKEN="$(secrets_get "$CFG" BITBUCKET_API_TOKEN)"
-if [ -z "$EMAIL" ] || [ -z "$TOKEN" ]; then
-  echo "error: missing BITBUCKET_EMAIL (or JIRA_EMAIL) and BITBUCKET_API_TOKEN in $CFG or the environment." >&2
-  echo "Run 'bin/skeleton setup jira' and answer yes to the Bitbucket question." >&2
-  exit 3
-fi
-secrets_check_mode "$CFG"
-
-code="$(secrets_curl_basic "$EMAIL" "$TOKEN" -sS --connect-timeout 10 --max-time 60 \
-  -X POST -H "Content-Type: application/json" -H "Accept: application/json" \
-  --data-binary "@$TMP/payload.json" -o "$TMP/response.json" -w '%{http_code}' \
-  "$URL" 2>"$TMP/curl.err")" || true
+load_creds
+code="$(api POST "$URL" "$TMP/response.json" "$TMP/payload.json")"
 case "$code" in
   200|201)
     python3 -c '
@@ -176,17 +285,5 @@ import json, sys
 d = json.load(open(sys.argv[1]))
 print("ok: PR #%s %s" % (d.get("id", "?"), ((d.get("links") or {}).get("html") or {}).get("href", "")))' "$TMP/response.json"
     ;;
-  ''|000)
-    echo "error: could not reach the Bitbucket API: $(head -c 300 "$TMP/curl.err")" >&2
-    exit 4 ;;
-  *)
-    echo "error: Bitbucket API returned HTTP $code" >&2
-    python3 -c '
-import json, sys
-try:
-    d = json.load(open(sys.argv[1]))
-    print((d.get("error") or {}).get("message") or json.dumps(d)[:500])
-except Exception:
-    print(open(sys.argv[1], errors="replace").read()[:500])' "$TMP/response.json" >&2 || true
-    exit 4 ;;
+  *) api_fail "$code" "$TMP/response.json" ;;
 esac

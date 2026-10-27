@@ -135,6 +135,27 @@ class PrBitbucketTest(GitScriptCase):
                                "--workspace", "acme", "--dry-run")
         self.assertEqual(proc.returncode, 2)
 
+    def test_merge_dry_run_and_validation(self):
+        repo = self.make_repo()
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--merge", "42", "--strategy", "squash",
+                               "--no-close-source", "--message", "fix(dns): ttl (#42)", "--dry-run")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        first, rest = proc.stdout.split("\n", 1)
+        self.assertEqual(first, "dry-run: POST https://api.bitbucket.org/2.0/repositories/acme/widgets/pullrequests/42/merge")
+        payload = json.loads(rest)
+        self.assertEqual(payload, {"type": "pullrequest", "close_source_branch": False,
+                                   "merge_strategy": "squash", "message": "fix(dns): ttl (#42)"})
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--merge", "42", "--dry-run")
+        self.assertNotIn("merge_strategy", proc.stdout)
+        self.assertEqual(self.run_script("pr-bitbucket.sh", "-C", str(repo), "--merge", "abc").returncode, 2)
+        self.assertEqual(self.run_script("pr-bitbucket.sh", "-C", str(repo), "--merge", "42",
+                                         "--strategy", "rebase").returncode, 2)
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--merge", "42")
+        self.assertEqual(proc.returncode, 3)
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--merge", "42",
+                               "--message", "token " + FAKE_GH, "--dry-run")
+        self.assertEqual(proc.returncode, 5)
+
 
 class ReposSyncTest(GitScriptCase):
     def test_dry_run_lists_and_agent_guard(self):
