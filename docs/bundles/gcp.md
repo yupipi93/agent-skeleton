@@ -24,7 +24,7 @@ identity, IAP, deploy verification, OAuth, private databases and cost reports.
 
 | Path | Purpose |
 |---|---|
-| `kit/bundles/gcp/scripts/gcp-account.py` | Resolve the gcloud account for a project id from `GCP_ACCOUNT_MAP` (`~/.config/agent-skeleton/gcp.env` or the environment); read-only |
+| `kit/bundles/gcp/scripts/gcp-account.py` | Resolve the gcloud account for a project id from `GCP_ACCOUNT_MAP` (`~/.config/agent-skeleton/gcp.env` or the environment); an id no glob matches is discovered read-only with gcloud (home organization breaks ties) and learned, `--sync` learns every visible project |
 | `tools/billing-exec-report/` | The cost report generator (stdlib Python, TOML or JSON config, synthetic sample in `examples/sample/`, real reports in the git-ignored `reports/`) |
 
 ```bash

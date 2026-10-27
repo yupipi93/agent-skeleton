@@ -45,9 +45,17 @@ ACCOUNT="$(kit/bundles/gcp/scripts/gcp-account.py my-project-dev)"
 gcloud run services list --project=my-project-dev --region=europe-west1 --account="$ACCOUNT"
 ```
 
-The script only reads the map: it never runs gcloud or changes anything. Exit 1 means
-no pattern matches; ask the user which identity owns the project and suggest adding
-it to the map.
+When no glob matches, the map does not go stale: the script looks the id up in
+`~/.config/agent-skeleton/gcp-account-learned.txt`, and failing that asks each account
+of the map, read-only (`gcloud projects describe`), which one sees the project, then
+learns the answer. A project several accounts can see goes to the account whose own
+organization holds it (a guest grant never wins over the home org). `--sync` learns, or
+corrects, every project the accounts can list; run it after a new account or a project
+moved between organizations. `--no-discover` (or `GCP_ACCOUNT_DISCOVER=0`) keeps it to
+the map and the learned file. It never changes the active account.
+
+Exit 1 means no account can see the project (or a login expired): ask the user which
+identity owns it, and add a glob when a whole family of ids belongs to one account.
 
 Template for the user to fill (write it in the reply, not in a kit file):
 
