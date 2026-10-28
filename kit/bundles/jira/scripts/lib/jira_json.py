@@ -67,8 +67,17 @@ def error_summary(data):
     if not isinstance(data, dict):
         return str(data)[:300]
     parts = list(data.get("errorMessages") or [])
-    for k, v in (data.get("errors") or {}).items():
-        parts.append("%s: %s" % (k, v))
+    errors = data.get("errors") or {}
+    if isinstance(errors, list):
+        # Forms API shape: [{"status": 404, "code": "...", "title": "...", "detail": "..."}]
+        for e in errors:
+            if isinstance(e, dict):
+                parts.append(" ".join(str(e[k]) for k in ("code", "detail") if e.get(k)))
+            else:
+                parts.append(str(e))
+    else:
+        for k, v in errors.items():
+            parts.append("%s: %s" % (k, v))
     if data.get("message"):
         parts.append(str(data["message"]))
     return "; ".join(parts)[:500] or json.dumps(data)[:300]
