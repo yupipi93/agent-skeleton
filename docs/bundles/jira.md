@@ -10,6 +10,7 @@ comment, transition safely, and keep secrets out of everything you send.
 |---|---|
 | `jira-tickets` | The script table, reading a ticket properly, propose-then-create, picking a ticket up (In Progress plus the start comment), the visual description template, closing the loop after a task, rewording around the text guard |
 | `jira-board-config` | The per-board TOML template (project, issue and request types, title format, assignee and reporter, `public_comments`, transitions, routing) and where to keep it |
+| `jira-service-desk-portal-requests` | Requests to another team's service desk portal as the signed-in person (`tools/jsm-portal-requests`): catalog of categories, request types and fields, plan, send, follow up |
 | `devops-ticket-workflow` | The end-to-end lifecycle: read ticket and forms, choose the repo, worktree branch, change, plan, PR, client-safe comment, transition |
 | `ticket` | Slash command: `/ticket PROJ-123` or `/ticket <description>` runs that lifecycle |
 

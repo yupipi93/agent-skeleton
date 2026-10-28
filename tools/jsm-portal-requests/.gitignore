@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+
+# Everything the tool produces lives outside the repo (see jpr/config.py), but guard
+# against a JPR_HOME pointed inside it: the browser profile holds a live Atlassian session.
+chrome-profile/
+catalog/
+runs/
+*.png

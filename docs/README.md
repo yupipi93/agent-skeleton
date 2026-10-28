@@ -34,6 +34,7 @@ Standalone tools that bundles drive:
 |---|---|---|
 | `tools/billing-exec-report` | gcp (`gcp-billing-report`) | [README](../tools/billing-exec-report/README.md) |
 | `tools/bitbucket-access-bootstrap` | git (`git-bitbucket-access-bootstrap`) | [README](../tools/bitbucket-access-bootstrap/README.md) |
+| `tools/jsm-portal-requests` | jira (`jira-service-desk-portal-requests`) | [README](../tools/jsm-portal-requests/README.md) |
 | `tools/voice-hub` | voice (`voice-hub`) | [README](../tools/voice-hub/README.md) |
 
 ## Images
