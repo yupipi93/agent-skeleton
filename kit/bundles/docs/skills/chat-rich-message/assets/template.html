@@ -4,10 +4,14 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Messages to send</title>
+<meta name="theme-color" content="#2563EB">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232563EB'/%3E%3Cpath d='M7 8h18a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H14l-6 5v-5H7a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z' fill='%23fff'/%3E%3C/svg%3E">
 <!--
   SCAFFOLD for the chat-rich-message skill.
 
-  Fill in MSGS below: one entry per recipient. Everything else works as-is.
+  Fast path: kit/bundles/docs/scripts/rich-message.py <draft>.md fills MSGS and TITLE
+  (between their marker comments) from a Markdown draft and opens the page.
+  By hand: fill in MSGS below, one entry per recipient. Everything else works as-is.
 
   Rules that matter (see SKILL.md):
     * Inside `body:` use ONLY <p> <b> <i> <ul>/<li> <a href> <br> and emoji.
@@ -88,7 +92,8 @@
    attach : optional file reminder under the message
    body   : the message itself, paste-safe HTML only
    Add a second body/attach pair when a follow-up message is sent separately.  */
-const MSGS = [
+const TITLE = /*TITLE*/"Messages to send"/*END*/;
+const MSGS = /*MSGS*/[
   {
     group: "Team A",
     name: "Full Name",
@@ -115,16 +120,18 @@ const MSGS = [
         body: `<p>Second message, sent separately.</p>` },
     ]
   },
-];
+]/*END*/;
 
 /* ── 2. Rendering + clipboard (no edits needed below) ───────────────────── */
+document.title = TITLE;
+document.querySelector("h1").textContent = TITLE;
 const groups = [...new Set(MSGS.map(m => m.group))];
 document.getElementById("out").innerHTML = groups.map(g => {
   const list = MSGS.filter(m => m.group === g);
   return (g ? `<h2>${g} <span style="color:var(--faint);font-size:11px">${list.length}</span></h2>` : "")
    + list.map((d, i) => `
     <article class="card">
-      <div class="card-head"><h3>${d.name}</h3><div class="em">${d.email || ""}</div></div>
+      ${d.name || d.email ? `<div class="card-head"><h3>${d.name || ""}</h3><div class="em">${d.email || ""}</div></div>` : ""}
       ${d.ctx ? `<div class="ctx"><span class="lbl">Context for you, never copied</span>${d.ctx}</div>` : ""}
       ${d.msgs.map((m, j) => `
         <div class="msg">

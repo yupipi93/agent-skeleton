@@ -28,15 +28,15 @@ when the user prefers typing native `*bold*` / `<url|text>`.
 1. **Local file only.** Never publish the page to a hosting service, a share link or a
    public artifact: these messages name colleagues, quote internal numbers and link
    internal systems. If a copy was published earlier, say so and offer to remove it.
-2. **Open the browser yourself** (step 4). Do not end the turn telling the user to
-   open a file.
+2. **Open the page yourself** (`rich-message.py` does it). Do not end the turn telling
+   the user to open a file.
 3. **A copy button per message**, never "select all": a page with several messages
    cannot use it.
 4. **No `<table>`, no images, no custom fonts or colours inside a message body.** Teams
    mangles pasted tables; the rest is stripped inconsistently.
-5. **No credentials.** Refer to a password by which one it is, never by value. Run the
-   draft through `kit/bundles/core/scripts/text-guard.sh --file <page>.html` before
-   opening it (rule `outbound-text-safety` when the jira bundle is on).
+5. **No credentials.** Refer to a password by which one it is, never by value.
+   `rich-message.py` runs the text guard before opening (rule `outbound-text-safety`
+   when the jira bundle is on).
 6. **Plain punctuation.** Commas, colons, parentheses, ASCII hyphens. The template
    contains no em dash; keep it that way (rule `no-em-dash` in the style bundle).
 
@@ -59,53 +59,77 @@ when the user prefers typing native `*bold*` / `<url|text>`.
 - **One idea per block** with a blank line between blocks. Bold the one concept and the
   concrete values; put a lone link last on its own line.
 
-### 2. Build the page
+### 2. Write the draft, then build and open in one call
 
-Start from [assets/template.html](assets/template.html): a working scaffold with the
-copy machinery in place. Fill the `MSGS` array; keep everything inline (style, script,
-no external assets). Inside a message body use only paste-safe elements: `<p>`, `<b>`,
-`<strong>`, `<i>`, `<ul>`, `<ol>`, `<li>`, `<a href>`, `<br>`, emoji.
-
-Every message gets:
-
-- **Copy rich**: selects the rendered node and calls `document.execCommand("copy")`,
-  which puts both `text/html` and `text/plain` on the clipboard. Deliberately not
-  `navigator.clipboard.write`: the async Clipboard API is not reliably available on
-  `file://`.
-- **Copy plain**: for WhatsApp, Telegram or SMS, which strip formatting; URLs are written
-  out in full and bullets become `- `.
-- **An attachment reminder** when a file must go with the message.
-- **A "context for you" strip** with facts for the sender (status, numbers, what to
-  watch), outside the copied node so it never lands in the message.
-
-Several recipients: one card per person, grouped by team, each with their own links and
-facts.
-
-### 3. Save it somewhere stable
-
-Not the session scratchpad: the user reopens the page while sending. Use a git-ignored
-folder of the workspace, for example `local/messages/<topic>.html` (`local/` is
-git-ignored), unless the user names another place.
-
-### 4. Open it
+Write the draft as Markdown in a git-ignored, stable folder (the user reopens the page
+while sending; not the session scratchpad), for example `local/messages/<topic>.md`,
+then run:
 
 ```bash
-kit/bundles/docs/scripts/open-local.sh local/messages/<topic>.html
+kit/bundles/docs/scripts/rich-message.py local/messages/<topic>.md
 ```
 
-It uses `$BROWSER_OPEN_CMD` when set (for example `open -a "Google Chrome"`), else
-`open` on macOS, else `xdg-open` (Linux) or `wslview` (WSL), and returns immediately.
-Re-open it after every edit so the user sees the current version.
+That is the whole delivery, about half a second: it renders `<topic>.html` from
+[assets/template.html](assets/template.html), runs the text guard and the em dash check
+(exit 2 and nothing opened on a hit: fix the draft and re-run), and opens the page. Inside
+Cursor or VS Code the page opens as a tab of the editor's own browser; elsewhere in the
+system browser. Re-run after every edit. **Do not** copy the template by hand, take a
+screenshot or syntax-check the page for a normal message: the script and its tests
+cover that.
 
-### 5. Verify before delivering
+A plain Markdown file is one message. For several recipients or messages:
 
-```bash
-kit/bundles/docs/scripts/chrome.sh screenshot local/messages/<topic>.html /tmp/messages.png 1080,1400
+```markdown
+# Release notes
+=== Recipient A | recipient-a@example.com | Team A
+ctx: module-x **26.7 %**, waiting on the PR
+--- Message 1: announcement
+attach: 📎 Attach the guide as PDF
+Hi there,
+
+**The lead fact.** One clause of nuance.
+
+- Specific point with **the number**
+- [PROJ-123](https://example.com/PROJ-123)
+--- Message 2: follow-up
+Second message, sent separately.
+=== Luis | | Team B
+Hi Luis, ...
 ```
 
-Read the PNG. Check: the expected number of cards, links present, no raw markup leaking
-into a body, no `<table>` inside a message. When `node` is available, also check the
-script parses (copy the `<script>` body to a file and run `node --check` on it).
+`# title` (first line only) names the page; `=== name | email | group` starts a card;
+`ctx:` is sender-only context, never copied; `--- label` starts another message in the
+card; `attach:` adds the file reminder under it.
+
+Body Markdown: paragraphs, line breaks, `-` bullets (indent to nest), `1.` lists,
+`**bold**`, `*italic*`, `[text](url)`, bare URLs. Raw HTML is escaped, so the page only
+holds paste-safe tags. A `## heading` becomes a bold line.
+
+The page gives every message **Copy rich** (selects the rendered node and calls
+`document.execCommand("copy")`, which puts `text/html` and `text/plain` on the
+clipboard; the async Clipboard API is not reliable on `file://`), **Copy plain** (for
+WhatsApp, Telegram or SMS: full URLs, `- ` bullets), the attachment reminder and the
+sender context strip outside the copied node.
+
+### 3. Editor browser (one-time setup)
+
+The editor tab needs the small `editor-browser-open` extension (a URI handler,
+`kit/bundles/docs/editor-extension/`). Install or update it with
+`kit/bundles/docs/scripts/install-editor-browser.sh` (also run by
+`bin/skeleton setup docs`). Without it, or with `BROWSER_OPEN_TARGET=system`, pages open
+in the system browser; `BROWSER_OPEN_CMD` (for example `open -a "Google Chrome"`) still
+wins over both.
+
+### 4. By hand (rare)
+
+For a layout the draft format cannot express, copy the template, fill `MSGS` (HTML
+bodies, paste-safe tags only), run the text guard on it and open it with
+`kit/bundles/docs/scripts/open-local.sh <page>.html`. Then check the render once with
+`kit/bundles/docs/scripts/chrome.sh screenshot <page>.html <png> 1080,1400`.
+
+### 5. Hand it over
+
+Say the page is open and give its path, so the user can reopen it.
 
 ### 6. Tell the user how to paste
 
@@ -126,8 +150,6 @@ script parses (copy the `<script>` body to a file and run `node --check` on it).
 - [ ] Each message about 150 words or fewer; detail pushed to the linked doc
 - [ ] Personalised with real, verified numbers
 - [ ] Link display text doubles as the identifier
-- [ ] Text guard passed: no credentials, tokens or internal-only endpoints
-- [ ] Only paste-safe elements in bodies; no `<table>`
-- [ ] Copy rich and Copy plain on every message; sender context outside the copied node
-- [ ] Saved outside the scratchpad; render checked; **opened by the agent**
+- [ ] No credentials, tokens or internal-only endpoints (the script's guard passed)
+- [ ] Draft saved outside the scratchpad; page built and **opened** by `rich-message.py`
 - [ ] Not published anywhere

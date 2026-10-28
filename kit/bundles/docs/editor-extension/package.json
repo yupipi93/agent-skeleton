@@ -1,0 +1,18 @@
+{
+	"name": "editor-browser-open",
+	"displayName": "Open in editor browser",
+	"description": "URI handler that opens a URL in the editor's built-in browser (Cursor browser tab, else VS Code Simple Browser), so a shell script can show a page inside the editor.",
+	"version": "0.1.0",
+	"publisher": "agent-skeleton",
+	"license": "MIT",
+	"engines": {
+		"vscode": "^1.80.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onUri"
+	],
+	"main": "./extension.js"
+}

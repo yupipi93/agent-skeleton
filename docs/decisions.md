@@ -306,3 +306,17 @@ One token can go to several projects. The `admin` scope preset carries
 refuses duplicate token names, so rotation creates a dated name. Playwright lives in the tool's own venv, outside
 the kit's stdlib-only scripts, and the tests cover everything but the browser steps. Paths
 avoid the words "token" and "secret", which managed Claude Code policies commonly deny.
+
+## D37. Rich chat messages from a Markdown draft, opened in the editor's browser
+
+Building a `chat-rich-message` page used to take the agent several slow steps: copy the
+9 KB template, fill `MSGS` by hand, scan, screenshot with headless Chrome, read the PNG,
+open a new system browser window. `kit/bundles/docs/scripts/rich-message.py` now turns a
+short Markdown draft into the page, runs the text guard and the em dash check, and opens
+it in one call (about half a second); its parser is covered by tests, so the screenshot
+is no longer part of the normal path. The page opens inside the editor when the agent
+runs in Cursor or VS Code: a shell cannot run an editor command, so a small extension
+(`kit/bundles/docs/editor-extension/`, installed by `bin/skeleton setup docs`) registers
+a URI handler and `open-local.sh` opens `cursor://` or `vscode://` URIs. Cursor's browser
+tab accepts `file://` URLs; VS Code's Simple Browser does not, so there the extension
+hands the page to the system browser. `BROWSER_OPEN_TARGET=system` opts out.
