@@ -27,7 +27,10 @@ from typing import Iterator
 
 from . import config
 
+# Pin the profile: once a second profile exists in the data dir (a Google sign-in can
+# create one), Chrome opens the profile picker instead, and CDP cannot attach to it.
 BASE_FLAGS = (
+    "--profile-directory=Default",
     "--no-first-run",
     "--no-default-browser-check",
     "--window-size=1440,1000",
