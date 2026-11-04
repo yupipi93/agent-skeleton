@@ -996,8 +996,11 @@ def main(argv=None):
         if hub.get("public"):
             print("📱 Phone: %s" % hub["public"])
         label = "Listen" if lang == "en" else "Escuchar"
+        # The public URL (a private network name) opens on every device; 127.0.0.1
+        # only on this machine.
         print("Markdown: [🎧 %s: %s](%s)" % (label, (args.title or TEXT[lang]["summary"])
-                                             .replace("]", ")"), hub["local"]))
+                                             .replace("]", ")"),
+                                             hub.get("public") or hub["local"]))
     elif hub_wanted:
         failures.append("hub: not stored (see the error above)")
     return finish(cfg, delivered, failures, "audio", engine, args, tag, len(spoken), seconds,

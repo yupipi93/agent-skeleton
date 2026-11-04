@@ -25,6 +25,9 @@ default browser; `always` opens the browser; `never` only prints the link.
 Markdown: [🎧 Listen: <title>](http://127.0.0.1:7473/n/<id>?play=1)
 ```
 
+When the hub has a public URL (for example a Tailscale Serve name), the `Markdown:`
+line uses it instead of `127.0.0.1`, so the link opens on every device of that network.
+
 **Copy the `Markdown:` line into your written reply.** A click plays the note (an open hub
 tab takes it over). Optional flags that make the entry better: `--summary "<one line>"`,
 `--link <url>` (PR, ticket, dashboard; URLs are never spoken), and, when the user has
