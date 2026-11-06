@@ -77,6 +77,19 @@ kit/bundles/git/scripts/pr-bitbucket.sh -C "$WT" --update 42 --body-file pr.md [
 It sends only the description (and the title when given) with the same section check,
 ticket link and text guard as opening one; reviewers stay as they are.
 
+## Drafts
+
+A PR that must not be merged yet (it waits for an apply date, another PR, or is still in
+progress) is opened with `--draft`, so nobody merges it early. Mark it ready only when it
+is to be merged at once:
+
+```bash
+kit/bundles/git/scripts/pr-bitbucket.sh -C "$WT" --title "..." --body-file pr.md --draft
+kit/bundles/git/scripts/pr-bitbucket.sh -C "$WT" --update 42 --ready     # or --draft to park it again
+```
+
+`--merge` refuses a draft (exit 4).
+
 ## Merge (only when the user asks)
 
 Merging stays with the user unless they ask for it. Then, after checks and approvals:

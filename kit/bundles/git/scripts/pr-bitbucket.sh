@@ -8,6 +8,7 @@
 #     [--ticket PROJ-123] [--reviewer '{uuid}' | --reviewer 557058:abcd...] [--dry-run]
 #   kit/bundles/git/scripts/pr-bitbucket.sh --merge 42 [--strategy squash] [--dry-run]
 #   kit/bundles/git/scripts/pr-bitbucket.sh --update 42 --body-file pr.md [--title TEXT]
+#   kit/bundles/git/scripts/pr-bitbucket.sh --update 42 --draft | --ready
 #   kit/bundles/git/scripts/pr-bitbucket.sh --template > pr.md
 #
 # Options:
@@ -25,18 +26,20 @@
 #   -C, --repo-dir DIR   repository to read branch and remote from (default: .)
 #   --no-section-check   allow a body without Summary, Changes, Validation and Rollback
 #   --em-dash            also block U+2014 (house style)
+#   --draft              open it as a draft (nobody can merge it until it is ready)
 #   --dry-run            print the request and payload, send nothing
 #   --template           print the body scaffold and exit
 #
 # Merge mode (--merge ID): merges an OPEN pull request. Only on the user's explicit
-# request; a PR that is already merged exits 0, a declined one exits 4.
+# request; a PR that is already merged exits 0, a declined or draft one exits 4.
 #   --strategy S         merge_commit, squash or fast_forward (default: the repo's)
 #   --message TEXT       merge commit message (default: Bitbucket's)
 #   --no-close-source    keep the source branch (default: close it)
 #
 # Update mode (--update ID): rewrites the description (and the title when --title is
 # given) of an existing pull request. Same section check, ticket link and text guard as
-# opening one; reviewers are left as they are.
+# opening one; reviewers are left as they are. --draft turns it into a draft and --ready
+# marks it ready to merge; with either of them --body-file is optional.
 #
 # Credentials: ~/.config/agent-skeleton/atlassian.env (or environment variables):
 #   BITBUCKET_EMAIL (falls back to JIRA_EMAIL) and BITBUCKET_API_TOKEN, an Atlassian API
@@ -58,7 +61,7 @@ need() { if [ "$2" -lt 2 ]; then echo "error: $1 needs a value" >&2; exit 2; fi;
 
 TITLE="" BODY_FILE="" REPO="" WORKSPACE="" SOURCE="" DEST="" TICKET="" REPO_DIR="."
 REVIEWERS="" USE_DEFAULTS=1 CLOSE_SOURCE=true SECTION_CHECK=1 GUARD_ARGS="" DRY_RUN=0
-MERGE="" STRATEGY="" MESSAGE="" UPDATE=""
+MERGE="" STRATEGY="" MESSAGE="" UPDATE="" DRAFT=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --title) need "$1" $#; TITLE="$2"; shift 2 ;;
@@ -77,6 +80,8 @@ while [ $# -gt 0 ]; do
     --dry-run) DRY_RUN=1; shift ;;
     --merge) need "$1" $#; MERGE="$2"; shift 2 ;;
     --update) need "$1" $#; UPDATE="$2"; shift 2 ;;
+    --draft) DRAFT=true; shift ;;
+    --ready) DRAFT=false; shift ;;
     --strategy) need "$1" $#; STRATEGY="$2"; shift 2 ;;
     --message) need "$1" $#; MESSAGE="$2"; shift 2 ;;
     --template) /bin/bash "$HERE/pr-github.sh" --template; exit 0 ;;
@@ -172,9 +177,10 @@ print(json.dumps(p, ensure_ascii=False, indent=2))' >"$TMP/payload.json"
 
   code="$(api GET "$PR_URL" "$TMP/pr.json")"
   [ "$code" = "200" ] || api_fail "$code" "$TMP/pr.json"
-  state="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("state",""))' "$TMP/pr.json")"
+  state="$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("DRAFT" if d.get("state") == "OPEN" and d.get("draft") else d.get("state",""))' "$TMP/pr.json")"
   case "$state" in
     OPEN) ;;
+    DRAFT) echo "error: PR #$MERGE is a draft; mark it ready first (--update $MERGE --ready)" >&2; exit 4 ;;
     MERGED) echo "ok: PR #$MERGE is already merged"; exit 0 ;;
     *) echo "error: PR #$MERGE is $state, not OPEN" >&2; exit 4 ;;
   esac
@@ -212,17 +218,21 @@ if [ -n "$UPDATE" ]; then
 else
   [ -n "$TITLE" ] || { echo "error: --title is required" >&2; exit 2; }
 fi
-[ -n "$BODY_FILE" ] || { echo "error: --body-file is required (--template prints a scaffold)" >&2; exit 2; }
+if [ -z "$BODY_FILE" ] && { [ -z "$UPDATE" ] || [ -z "$DRAFT" ]; }; then
+  echo "error: --body-file is required (--template prints a scaffold)" >&2; exit 2
+fi
 
-if [ "$BODY_FILE" = "-" ]; then
+if [ -z "$BODY_FILE" ]; then
+  : >"$TMP/body.md"
+elif [ "$BODY_FILE" = "-" ]; then
   cat >"$TMP/body.md"
 else
   [ -r "$BODY_FILE" ] || { echo "error: cannot read --body-file $BODY_FILE" >&2; exit 2; }
   cat "$BODY_FILE" >"$TMP/body.md"
 fi
-[ -s "$TMP/body.md" ] || { echo "error: the PR body is empty" >&2; exit 2; }
+[ -s "$TMP/body.md" ] || [ -z "$BODY_FILE" ] || { echo "error: the PR body is empty" >&2; exit 2; }
 
-if [ "$SECTION_CHECK" -eq 1 ]; then
+if [ "$SECTION_CHECK" -eq 1 ] && [ -n "$BODY_FILE" ]; then
   missing=""
   for s in Summary Changes Validation Rollback; do
     grep -Eq "^#{1,3}[[:space:]]+$s" "$TMP/body.md" || missing="$missing $s"
@@ -235,7 +245,7 @@ fi
 
 resolve_repo
 if [ -n "$UPDATE" ]; then
-  if [ -n "$TICKET" ] && ! grep -q "$TICKET" "$TMP/body.md"; then
+  if [ -n "$BODY_FILE" ] && [ -n "$TICKET" ] && ! grep -q "$TICKET" "$TMP/body.md"; then
     site="$(secrets_get "$CFG" JIRA_SITE)"
     site="${site#https://}"
     site="${site%%/*}"
@@ -248,11 +258,15 @@ if [ -n "$UPDATE" ]; then
     echo "BLOCKED: the PR was not updated. Remove the secret-shaped text and retry." >&2
     exit 5
   fi
-  TITLE="$TITLE" python3 - "$TMP/body.md" >"$TMP/payload.json" <<'PY'
+  TITLE="$TITLE" DRAFT="$DRAFT" HAS_BODY="$BODY_FILE" python3 - "$TMP/body.md" >"$TMP/payload.json" <<'PY'
 import json, os, sys
-payload = {"description": open(sys.argv[1], encoding="utf-8").read()}
+payload = {}
+if os.environ["HAS_BODY"]:
+    payload["description"] = open(sys.argv[1], encoding="utf-8").read()
 if os.environ["TITLE"]:
     payload["title"] = os.environ["TITLE"]
+if os.environ["DRAFT"]:
+    payload["draft"] = os.environ["DRAFT"] == "true"
 print(json.dumps(payload, ensure_ascii=False, indent=2))
 PY
   PR_URL="$API/repositories/$WORKSPACE/$REPO/pullrequests/$UPDATE"
@@ -267,7 +281,8 @@ PY
   python3 -c '
 import json, sys
 d = json.load(open(sys.argv[1]))
-print("ok: PR #%s updated %s" % (d.get("id", "?"), ((d.get("links") or {}).get("html") or {}).get("href", "")))' "$TMP/response.json"
+print("ok: PR #%s updated (%s) %s" % (d.get("id", "?"), "draft" if d.get("draft") else "ready",
+      ((d.get("links") or {}).get("html") or {}).get("href", "")))' "$TMP/response.json"
   exit 0
 fi
 [ -n "$SOURCE" ] || SOURCE="$(git -C "$REPO_DIR" symbolic-ref --short HEAD 2>/dev/null || true)"
@@ -295,7 +310,7 @@ fi
 
 [ "$USE_DEFAULTS" -eq 1 ] && REVIEWERS="$REVIEWERS,$(secrets_get "$CFG" PR_DEFAULT_REVIEWERS)"
 
-TITLE="$TITLE" SOURCE="$SOURCE" DEST="$DEST" CLOSE="$CLOSE_SOURCE" REVIEWERS="$REVIEWERS" \
+TITLE="$TITLE" SOURCE="$SOURCE" DEST="$DEST" CLOSE="$CLOSE_SOURCE" REVIEWERS="$REVIEWERS" DRAFT="$DRAFT" \
   python3 - "$TMP/body.md" >"$TMP/payload.json" <<'PY'
 import json, os, sys
 ids = []
@@ -310,6 +325,8 @@ payload = {
     "description": open(sys.argv[1], encoding="utf-8").read(),
     "close_source_branch": os.environ["CLOSE"] == "true",
 }
+if os.environ["DRAFT"] == "true":
+    payload["draft"] = True
 if ids:
     payload["reviewers"] = [{"uuid": r} if r.startswith("{") else {"account_id": r} for r in ids]
 print(json.dumps(payload, ensure_ascii=False, indent=2))

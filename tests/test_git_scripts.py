@@ -179,6 +179,21 @@ class PrBitbucketTest(GitScriptCase):
                                "--body-file", str(self.body), "--dry-run")
         self.assertEqual(proc.returncode, 5)
 
+    def test_draft_on_open_and_update(self):
+        repo = self.make_repo()
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--title", "fix(dns): ttl",
+                               "--body-file", str(self.body), "--draft", "--dry-run")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertTrue(json.loads(proc.stdout.split("\n", 1)[1])["draft"])
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--title", "fix(dns): ttl",
+                               "--body-file", str(self.body), "--dry-run")
+        self.assertNotIn("draft", json.loads(proc.stdout.split("\n", 1)[1]))
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "42", "--draft", "--dry-run")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(json.loads(proc.stdout.split("\n", 1)[1]), {"draft": True})
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "42", "--ready", "--dry-run")
+        self.assertEqual(json.loads(proc.stdout.split("\n", 1)[1]), {"draft": False})
+
 
 class ReposSyncTest(GitScriptCase):
     def test_dry_run_lists_and_agent_guard(self):
