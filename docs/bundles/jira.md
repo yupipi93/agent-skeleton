@@ -20,6 +20,7 @@ comment, transition safely, and keep secrets out of everything you send.
 |---|---|
 | `outbound-text-safety` | Draft, secret-scan, show the exact text and destination, wait for approval, then send; public boards get outcome-only comments |
 | `jira-cli-first` | Use the REST scripts; an MCP server only when no script covers the need, after asking |
+| `jira-share-before-mentioning` | Before telling someone about a ticket, share it with them (`jira-share.sh`) and send the portal link |
 
 ## Scripts
 
@@ -31,6 +32,7 @@ comment, transition safely, and keep secrets out of everything you send.
 | `kit/bundles/jira/scripts/jira-comment.py` | Add or edit a comment, or replace the description, from Markdown (tables, code, panels, issue cards, mentions); `--dry-run` |
 | `kit/bundles/jira/scripts/jira-transition.sh` | Move by status name with at most one announced hop; never reaches Done through a cancellation; `--list`, `--dry-run` |
 | `kit/bundles/jira/scripts/jira-link.sh` | Link two issues; `--list-types`, `--dry-run` |
+| `kit/bundles/jira/scripts/jira-share.sh` | Share a service desk request with people (request participants) by email or accountId and print the link to send; `--list`, `--dry-run` |
 | `kit/bundles/jira/scripts/jira-forms.sh` | Attached forms (Jira Forms), which MCP scopes cannot read |
 | `kit/bundles/jira/scripts/jira-forms-context.sh` | The `jira-forms-context` hook (see Hooks) |
 | `kit/bundles/jira/scripts/jira-start-comment-reminder.sh` | The `jira-start-comment` hook (see Hooks) |

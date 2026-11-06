@@ -219,7 +219,7 @@ class ScriptCase(unittest.TestCase):
 class WriteScriptsTest(ScriptCase):
     def test_help_everywhere(self):
         for name in ("jira-issue.sh", "jira-search.sh", "jira-create.sh", "jira-transition.sh",
-                     "jira-link.sh", "jira-forms.sh", "jira-forms-context.sh", "jira-mcp-guard.sh",
+                     "jira-link.sh", "jira-share.sh", "jira-forms.sh", "jira-forms-context.sh", "jira-mcp-guard.sh",
                      "jira-start-comment-reminder.sh",
                      "jira-comment.py"):
             proc = self.run_script(name, "--help")
@@ -297,6 +297,30 @@ class WriteScriptsTest(ScriptCase):
         body = json.loads(proc.stdout.splitlines()[1])
         self.assertEqual(body["outwardIssue"], {"key": "PROJ-1"})
         self.assertEqual(body["type"], {"name": "Blocks"})
+
+    def test_share_resolves_skips_and_prints_portal_link(self):
+        self.config(JIRA_SITE=SITE, JIRA_EMAIL="you@example.com", JIRA_API_TOKEN=FAKE_TOKEN,
+                    JIRA_PORTAL_ID="3")
+        self.fake_curl([
+            {"match": "/participant?limit=", "body": {"values": [{"accountId": "acc-ada", "displayName": "Ada"}]}},
+            {"match": "query=bob%40example.com", "body": [
+                {"accountId": "acc-bob", "displayName": "Bob", "emailAddress": "bob@example.com"},
+                {"accountId": "acc-bobby", "displayName": "Bobby", "emailAddress": "bobby@example.com"}]},
+            {"match": "query=nobody", "body": []},
+            {"method": "POST", "match": "/request/PROJ-1/participant", "body": {}},
+        ])
+        proc = self.run_script("jira-share.sh", "PROJ-1", "bob@example.com", "acc-ada")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("shared: PROJ-1 with Bob", proc.stdout)
+        self.assertIn("already shared with: acc-ada", proc.stdout)
+        self.assertEqual(proc.stdout.splitlines()[-1],
+                         "https://%s/servicedesk/customer/portal/3/PROJ-1" % SITE)
+        post = [c for c in self.curl_calls() if "POST" in c["argv"]]
+        self.assertEqual(len(post), 1)
+        self.assert_no_secret_on_argv()
+        proc = self.run_script("jira-share.sh", "PROJ-1", "nobody@example.com")
+        self.assertEqual(proc.returncode, 5)
+        self.assertEqual(self.run_script("jira-share.sh", "PROJ-1").returncode, 2)
 
 
 class ReadScriptsTest(ScriptCase):

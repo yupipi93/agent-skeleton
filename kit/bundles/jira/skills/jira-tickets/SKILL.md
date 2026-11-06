@@ -24,6 +24,7 @@ reporter, whether comments are public) come from the board config: skill
 | Comment, edit a comment, replace the description | `kit/bundles/jira/scripts/jira-comment.py PROJ-123 --comment-file note.md` |
 | Change status | `kit/bundles/jira/scripts/jira-transition.sh PROJ-123 --to "In Progress"` |
 | Link two issues | `kit/bundles/jira/scripts/jira-link.sh PROJ-1 PROJ-2 --type Relates` |
+| Share with people (request participants), get the link to send | `kit/bundles/jira/scripts/jira-share.sh PROJ-123 ada@example.com` (`--list`, `--dry-run`) |
 
 Every write script has `--dry-run` (prints the request, sends nothing) and `--help`.
 Exit codes: 2 usage, 3 missing config, 4 API error, 5 blocked by the text guard.
@@ -116,6 +117,14 @@ answer, another team's merge or review, an access grant), move it to the board's
 `[transitions] waiting` status: `jira-transition.sh PROJ-123 --to "Waiting for customer"`.
 On service desks it usually pauses the SLA clock. Make sure a comment says what is
 awaited. When the answer arrives, move it back to `start`. Rule `jira-waiting-status`.
+
+## Telling someone about a ticket
+
+Before a message (chat, email, comment) asks someone about a ticket or points them to
+it, share the ticket with every person it addresses and put the link in the text:
+`jira-share.sh PROJ-123 ada@example.com bob@example.com` adds them as request
+participants, skips the ones already there and prints the link to paste (the customer
+portal on service desks). Rule `jira-share-before-mentioning`.
 
 ## Closing the loop after a task
 
