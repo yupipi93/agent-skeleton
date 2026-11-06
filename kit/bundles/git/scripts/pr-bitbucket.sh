@@ -7,6 +7,7 @@
 #   kit/bundles/git/scripts/pr-bitbucket.sh --title "fix(dns): correct TTL" --body-file pr.md \
 #     [--ticket PROJ-123] [--reviewer '{uuid}' | --reviewer 557058:abcd...] [--dry-run]
 #   kit/bundles/git/scripts/pr-bitbucket.sh --merge 42 [--strategy squash] [--dry-run]
+#   kit/bundles/git/scripts/pr-bitbucket.sh --update 42 --body-file pr.md [--title TEXT]
 #   kit/bundles/git/scripts/pr-bitbucket.sh --template > pr.md
 #
 # Options:
@@ -33,6 +34,10 @@
 #   --message TEXT       merge commit message (default: Bitbucket's)
 #   --no-close-source    keep the source branch (default: close it)
 #
+# Update mode (--update ID): rewrites the description (and the title when --title is
+# given) of an existing pull request. Same section check, ticket link and text guard as
+# opening one; reviewers are left as they are.
+#
 # Credentials: ~/.config/agent-skeleton/atlassian.env (or environment variables):
 #   BITBUCKET_EMAIL (falls back to JIRA_EMAIL) and BITBUCKET_API_TOKEN, an Atlassian API
 #   token with scopes read:repository:bitbucket and write:pullrequest:bitbucket.
@@ -53,7 +58,7 @@ need() { if [ "$2" -lt 2 ]; then echo "error: $1 needs a value" >&2; exit 2; fi;
 
 TITLE="" BODY_FILE="" REPO="" WORKSPACE="" SOURCE="" DEST="" TICKET="" REPO_DIR="."
 REVIEWERS="" USE_DEFAULTS=1 CLOSE_SOURCE=true SECTION_CHECK=1 GUARD_ARGS="" DRY_RUN=0
-MERGE="" STRATEGY="" MESSAGE=""
+MERGE="" STRATEGY="" MESSAGE="" UPDATE=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --title) need "$1" $#; TITLE="$2"; shift 2 ;;
@@ -71,6 +76,7 @@ while [ $# -gt 0 ]; do
     --em-dash) GUARD_ARGS="--em-dash"; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     --merge) need "$1" $#; MERGE="$2"; shift 2 ;;
+    --update) need "$1" $#; UPDATE="$2"; shift 2 ;;
     --strategy) need "$1" $#; STRATEGY="$2"; shift 2 ;;
     --message) need "$1" $#; MESSAGE="$2"; shift 2 ;;
     --template) /bin/bash "$HERE/pr-github.sh" --template; exit 0 ;;
@@ -201,7 +207,11 @@ print("ok: PR #%s merged%s %s" % (sys.argv[2], " as " + h if h else "",
   exit 0
 fi
 
-[ -n "$TITLE" ] || { echo "error: --title is required" >&2; exit 2; }
+if [ -n "$UPDATE" ]; then
+  case "$UPDATE" in *[!0-9]*) echo "error: --update needs a PR number" >&2; exit 2 ;; esac
+else
+  [ -n "$TITLE" ] || { echo "error: --title is required" >&2; exit 2; }
+fi
 [ -n "$BODY_FILE" ] || { echo "error: --body-file is required (--template prints a scaffold)" >&2; exit 2; }
 
 if [ "$BODY_FILE" = "-" ]; then
@@ -224,6 +234,42 @@ if [ "$SECTION_CHECK" -eq 1 ]; then
 fi
 
 resolve_repo
+if [ -n "$UPDATE" ]; then
+  if [ -n "$TICKET" ] && ! grep -q "$TICKET" "$TMP/body.md"; then
+    site="$(secrets_get "$CFG" JIRA_SITE)"
+    site="${site#https://}"
+    site="${site%%/*}"
+    if [ -n "$site" ]; then link="https://$site/browse/$TICKET"; else link="$TICKET"; fi
+    printf '\n---\nTicket: %s\n' "$link" >>"$TMP/body.md"
+  fi
+  { printf '%s\n\n' "$TITLE"; cat "$TMP/body.md"; } >"$TMP/outbound.md"
+  # shellcheck disable=SC2086
+  if ! /bin/bash "$CORE/text-guard.sh" --file "$TMP/outbound.md" $GUARD_ARGS; then
+    echo "BLOCKED: the PR was not updated. Remove the secret-shaped text and retry." >&2
+    exit 5
+  fi
+  TITLE="$TITLE" python3 - "$TMP/body.md" >"$TMP/payload.json" <<'PY'
+import json, os, sys
+payload = {"description": open(sys.argv[1], encoding="utf-8").read()}
+if os.environ["TITLE"]:
+    payload["title"] = os.environ["TITLE"]
+print(json.dumps(payload, ensure_ascii=False, indent=2))
+PY
+  PR_URL="$API/repositories/$WORKSPACE/$REPO/pullrequests/$UPDATE"
+  if [ "$DRY_RUN" -eq 1 ]; then
+    echo "dry-run: PUT $PR_URL"
+    cat "$TMP/payload.json"
+    exit 0
+  fi
+  load_creds
+  code="$(api PUT "$PR_URL" "$TMP/response.json" "$TMP/payload.json")"
+  [ "$code" = "200" ] || api_fail "$code" "$TMP/response.json"
+  python3 -c '
+import json, sys
+d = json.load(open(sys.argv[1]))
+print("ok: PR #%s updated %s" % (d.get("id", "?"), ((d.get("links") or {}).get("html") or {}).get("href", "")))' "$TMP/response.json"
+  exit 0
+fi
 [ -n "$SOURCE" ] || SOURCE="$(git -C "$REPO_DIR" symbolic-ref --short HEAD 2>/dev/null || true)"
 [ -n "$SOURCE" ] || { echo "error: no source branch (--source, or run on a branch)" >&2; exit 2; }
 if [ -z "$DEST" ]; then

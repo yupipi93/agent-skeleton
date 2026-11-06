@@ -65,6 +65,18 @@ and body pass `kit/bundles/core/scripts/text-guard.sh`; exit 5 means blocked.
 | 400 reviewer errors | an id is wrong, or the author is listed as a reviewer |
 | 404 | workspace or repo slug wrong (check `git remote get-url origin`) |
 
+## Update the description
+
+When the work behind an open PR changes (new commits, fresh plans), rewrite its body
+instead of leaving it stale:
+
+```bash
+kit/bundles/git/scripts/pr-bitbucket.sh -C "$WT" --update 42 --body-file pr.md [--title "..."] [--em-dash]
+```
+
+It sends only the description (and the title when given) with the same section check,
+ticket link and text guard as opening one; reviewers stay as they are.
+
 ## Merge (only when the user asks)
 
 Merging stays with the user unless they ask for it. Then, after checks and approvals:

@@ -156,6 +156,29 @@ class PrBitbucketTest(GitScriptCase):
                                "--message", "token " + FAKE_GH, "--dry-run")
         self.assertEqual(proc.returncode, 5)
 
+    def test_update_dry_run_and_validation(self):
+        repo = self.make_repo()
+        self.config(JIRA_SITE=SITE)
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "42",
+                               "--body-file", str(self.body), "--ticket", "PROJ-5", "--dry-run")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        first, rest = proc.stdout.split("\n", 1)
+        self.assertEqual(first, "dry-run: PUT https://api.bitbucket.org/2.0/repositories/acme/widgets/pullrequests/42")
+        payload = json.loads(rest)
+        self.assertEqual(set(payload), {"description"})
+        self.assertIn("https://%s/browse/PROJ-5" % SITE, payload["description"])
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "42", "--title", "fix(dns): ttl",
+                               "--body-file", str(self.body), "--dry-run")
+        self.assertEqual(json.loads(proc.stdout.split("\n", 1)[1])["title"], "fix(dns): ttl")
+        self.assertEqual(self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "abc",
+                                         "--body-file", str(self.body)).returncode, 2)
+        self.assertEqual(self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "42").returncode, 2)
+        self.assertEqual(self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "42",
+                                         "--body-file", str(self.body)).returncode, 3)
+        proc = self.run_script("pr-bitbucket.sh", "-C", str(repo), "--update", "42", "--title", "token " + FAKE_GH,
+                               "--body-file", str(self.body), "--dry-run")
+        self.assertEqual(proc.returncode, 5)
+
 
 class ReposSyncTest(GitScriptCase):
     def test_dry_run_lists_and_agent_guard(self):
