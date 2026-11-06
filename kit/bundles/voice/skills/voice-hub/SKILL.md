@@ -26,7 +26,10 @@ Markdown: [🎧 Listen: <title>](http://127.0.0.1:7473/n/<id>?play=1)
 ```
 
 When the hub has a public URL (for example a Tailscale Serve name), the `Markdown:`
-line uses it instead of `127.0.0.1`, so the link opens on every device of that network.
+line carries two links: `[🎧 Listen: <title>](http://127.0.0.1:7473/...) · [📱 Phone](https://<public>/...)`.
+The local one is for this machine: editors that open localhost links in their own
+browser (Cursor, VS Code) keep it there, so a hub tab open in the editor plays the note.
+The public one is for the phone. Paste the line as printed, both links.
 
 **Copy the `Markdown:` line into your written reply.** A click plays the note (an open hub
 tab takes it over). Optional flags that make the entry better: `--summary "<one line>"`,

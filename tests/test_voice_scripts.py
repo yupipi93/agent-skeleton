@@ -70,7 +70,7 @@ with wave.open(out, "wb") as w:
 
 # A stand-in for tools/voice-hub/bin/avh: records every call, answers like the real CLI.
 # FAKE_HUB_RUNNING=0 makes `ping` report a stopped server; FAKE_HUB_TAB=1 makes `play`
-# report that an open hub tab took the note.
+# report that an open hub tab took the note; FAKE_HUB_PUBLIC gives the hub a public URL.
 FAKE_HUB = """#!%s
 import json, os, sys
 args = sys.argv[1:]
@@ -82,8 +82,10 @@ if args[0] == "ping":
     sys.exit(0 if running else 1)
 if args[0] == "add":
     sys.stdin.read()
-    print(json.dumps({"id": "n1", "urls": {"local": "http://127.0.0.1:9/n/n1"},
-                      "summary": "", "agent_label": "test"}))
+    urls = {"local": "http://127.0.0.1:9/n/n1"}
+    if os.environ.get("FAKE_HUB_PUBLIC"):
+        urls["public"] = os.environ["FAKE_HUB_PUBLIC"] + "/n/n1"
+    print(json.dumps({"id": "n1", "urls": urls, "summary": "", "agent_label": "test"}))
 elif args[0] == "play":
     played = os.environ.get("FAKE_HUB_TAB") == "1"
     print(json.dumps({"running": True, "played": played, "tab": "t1" if played else ""}))
@@ -319,6 +321,17 @@ class VoiceScriptsTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("playing in the open hub tab", proc.stderr)
         self.assertEqual(self.opened(), [])
+
+    @unittest.skipUnless(have_opus(), "needs ffmpeg with libopus")
+    def test_public_hub_gets_a_local_and_a_phone_link(self):
+        # One link cannot serve both: editors keep only localhost links in their own
+        # browser, and a phone cannot reach 127.0.0.1.
+        self.hub_config()
+        self.extra_env = {"FAKE_HUB_TAB": "1", "FAKE_HUB_PUBLIC": "https://mac.example.ts.net:8443"}
+        proc = self.run_script([sys.executable, str(VOICE), "--title", "T", "Done."])
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("Markdown: [🎧 Listen: T](http://127.0.0.1:9/n/n1?play=1)"
+                      " · [📱 Phone](https://mac.example.ts.net:8443/n/n1?play=1)", proc.stdout)
 
     @unittest.skipUnless(have_opus(), "needs ffmpeg with libopus")
     def test_open_modes_always_and_never(self):

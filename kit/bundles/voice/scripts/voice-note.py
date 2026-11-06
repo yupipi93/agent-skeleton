@@ -996,11 +996,14 @@ def main(argv=None):
         if hub.get("public"):
             print("📱 Phone: %s" % hub["public"])
         label = "Listen" if lang == "en" else "Escuchar"
-        # The public URL (a private network name) opens on every device; 127.0.0.1
-        # only on this machine.
-        print("Markdown: [🎧 %s: %s](%s)" % (label, (args.title or TEXT[lang]["summary"])
-                                             .replace("]", ")"),
-                                             hub.get("public") or hub["local"]))
+        # Two links when the hub has a public URL. The 127.0.0.1 one stays inside an
+        # editor that opens localhost links in its own browser (Cursor, VS Code), so the
+        # hub tab already open there takes the note; a phone can only open the public one.
+        line = "[🎧 %s: %s](%s)" % (label, (args.title or TEXT[lang]["summary"])
+                                    .replace("]", ")"), hub["local"])
+        if hub.get("public"):
+            line += " · [📱 %s](%s)" % ("Phone" if lang == "en" else "Móvil", hub["public"])
+        print("Markdown: " + line)
     elif hub_wanted:
         failures.append("hub: not stored (see the error above)")
     return finish(cfg, delivered, failures, "audio", engine, args, tag, len(spoken), seconds,
