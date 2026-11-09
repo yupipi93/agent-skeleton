@@ -31,6 +31,7 @@ comment, transition safely, and keep secrets out of everything you send.
 | `kit/bundles/jira/scripts/jira-create.sh` | Create with an ADF description rendered from Markdown; assignee and reporter defaults from config (`me`, an accountId, or empty); `--reporter-email`; `--dry-run` |
 | `kit/bundles/jira/scripts/jira-comment.py` | Add or edit a comment, or replace the description, from Markdown (tables, code, panels, issue cards, mentions); `--dry-run` |
 | `kit/bundles/jira/scripts/jira-transition.sh` | Move by status name with at most one announced hop; never reaches Done through a cancellation; `--list`, `--dry-run` |
+| `kit/bundles/jira/scripts/jira-assign.sh` | Change the assignee of an existing issue by email, accountId, `me` or `none`; `--dry-run` |
 | `kit/bundles/jira/scripts/jira-link.sh` | Link two issues; `--list-types`, `--dry-run` |
 | `kit/bundles/jira/scripts/jira-share.sh` | Share a service desk request with people (request participants) by email or accountId and print the link to send; `--list`, `--dry-run` |
 | `kit/bundles/jira/scripts/jira-forms.sh` | Attached forms (Jira Forms), which MCP scopes cannot read |
