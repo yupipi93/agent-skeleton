@@ -1,7 +1,7 @@
 # 🦴 core
 
 Always on. The workspace conventions, the safety-gate rules every other bundle relies
-on, and the shared script library.
+on, the backlog, release and audit method, and the shared script library.
 
 ## Skills
 
@@ -12,6 +12,7 @@ on, and the shared script library.
 | `plan-files` | Plans as `plans/<topic>.plan.md`; renaming generated plan names |
 | `readme-sync` | Keeping `README.md` and these pages in sync with the kit |
 | `permission-auto-accept` | AI Auto-Accept extension: install, how its hook answers prompts, the recommended deny-list, audit |
+| `backlog-release-audit` | Building a tool in audited releases: `BACKLOG.md` template, release checklist, auditor brief, the loop until "nothing more found" |
 
 ## Rules (always on)
 
@@ -20,6 +21,7 @@ on, and the shared script library.
 | `agent-safety-gates` | Index of the gates; gates override autonomy; approvals are per action |
 | `permission-prompt-hygiene` | Batch prompted commands, never disguise them, write files with the editor tools |
 | `no-broad-process-kill` | No `pkill` / `killall` by pattern; stop only the PIDs you started |
+| `audited-releases` | Deliverables that grow by requests: backlog file, numbered tested releases, a fresh auditor after each one until clean |
 
 ## Scripts
 

@@ -23,6 +23,7 @@ reporter, whether comments are public) come from the board config: skill
 | Create | `kit/bundles/jira/scripts/jira-create.sh --summary ... --description-file desc.md` |
 | Comment, edit a comment, replace the description | `kit/bundles/jira/scripts/jira-comment.py PROJ-123 --comment-file note.md` |
 | Change status | `kit/bundles/jira/scripts/jira-transition.sh PROJ-123 --to "In Progress"` |
+| Change the assignee | `kit/bundles/jira/scripts/jira-assign.sh PROJ-123 ada@example.com` (accountId, `me`, `none`; `--dry-run`) |
 | Link two issues | `kit/bundles/jira/scripts/jira-link.sh PROJ-1 PROJ-2 --type Relates` |
 | Share with people (request participants), get the link to send | `kit/bundles/jira/scripts/jira-share.sh PROJ-123 ada@example.com` (`--list`, `--dry-run`) |
 

@@ -40,7 +40,7 @@
 
 | | Bundle | What it gives your agents | Default | Docs |
 |---|---|---|:---:|---|
-| 🦴 | **core** | The safety-gate rules, a workspace guide, skill authoring, plan files and the shared script library (secret scan, config reader, curl without secrets on argv). | ✅ on | [core](docs/bundles/core.md) |
+| 🦴 | **core** | The safety-gate rules, a workspace guide, skill authoring, plan files, audited releases (backlog file, release checklist, independent auditor) and the shared script library (secret scan, config reader, curl without secrets on argv). | ✅ on | [core](docs/bundles/core.md) |
 | 🌿 | **git** | Every agent write happens in its own worktree, and every PR ships with a real Summary / Changes / Validation / Rollback body, on GitHub or Bitbucket. | ✅ on | [git](docs/bundles/git.md) |
 | 🎫 | **jira** | Jira Cloud from the terminal without an MCP: full ticket reads including attached forms (injected by a prompt hook, as untrusted data), Markdown to rich ADF (tables, panels, mentions), safe transitions (never Done by cancelling), secrets never on argv. | ✅ on | [jira](docs/bundles/jira.md) |
 | 🏗️ | **terraform** | *The agent plans, you apply.* Plan summaries with destroys and replaces first, copy-paste `-target` sets, import and state traps, a YAML-settings template. | ✅ on | [terraform](docs/bundles/terraform.md) |
@@ -141,7 +141,7 @@ $ bin/skeleton list --bundles
 🦴 agent-skeleton bundles  (tools: claude, cursor, gemini, antigravity)
 
     BUNDLE     STATE  SKILLS  RULES  HOOKS  MCP  DESCRIPTION
-🦴  core       on     5       3      0      0    Workspace guide, skill authoring, plan files, README sync...
+🦴  core       on     6       4      0      0    Workspace guide, skill authoring, plan files, README sync...
 📝  docs       on     5       0      0      0    Mermaid diagrams, print-ready HTML to PDF, Markdown to PD...
 ☁️  gcp        on     6       1      0      0    Google Cloud recipes: IAP impersonation, Cloud Run deploy...
 🌿  git        on     6       1      0      0    Conventional commits, branch-first workflow, PRs on GitHu...
@@ -166,7 +166,7 @@ $ bin/skeleton disable terraform-plan-review
 🦴 agent-skeleton bundles  (tools: claude, cursor, gemini, antigravity)
 
     BUNDLE     STATE  SKILLS  RULES  HOOKS  MCP  DESCRIPTION
-🦴  core       on     5       3      0      0    Workspace guide, skill authoring, plan files, README sync...
+🦴  core       on     6       4      0      0    Workspace guide, skill authoring, plan files, README sync...
 📝  docs       on     5       0      0      0    Mermaid diagrams, print-ready HTML to PDF, Markdown to PD...
 ☁️  gcp        on     6       1      0      0    Google Cloud recipes: IAP impersonation, Cloud Run deploy...
 🌿  git        on     6       1      0      0    Conventional commits, branch-first workflow, PRs on GitHu...
@@ -181,6 +181,7 @@ $ bin/skeleton disable terraform-plan-review
 🧩 skills
 
     BUNDLE     SKILL                        STATE  NOTES
+🦴  core       backlog-release-audit        on     
 🦴  core       permission-auto-accept       on     
 🦴  core       plan-files                   on     
 🦴  core       readme-sync                  on     
