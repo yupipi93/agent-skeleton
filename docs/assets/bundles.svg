@@ -29,7 +29,7 @@
       <text x="22" y="96" font-size="15" fill="#c9d1e3">Safety-gate rules, the workspace</text>
       <text x="22" y="117" font-size="15" fill="#c9d1e3">guide, skill authoring and the</text>
       <text x="22" y="138" font-size="15" fill="#c9d1e3">shared script library.</text>
-      <text x="22" y="166" font-size="13" fill="#f6b44b" fill-opacity="0.95">4 skills, 3 rules</text>
+      <text x="22" y="166" font-size="13" fill="#f6b44b" fill-opacity="0.95">6 skills, 4 rules</text>
     </g>
     <g transform="translate(340 96)">
       <rect width="290" height="186" rx="18" fill="#0f1420" stroke="#2c3550" stroke-width="1.5"/>
