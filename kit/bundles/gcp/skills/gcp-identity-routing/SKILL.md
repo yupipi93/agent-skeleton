@@ -111,4 +111,4 @@ CLOUDSDK_ACTIVE_CONFIG_NAME=client gcloud projects list   # one command, nothing
 | `PERMISSION_DENIED` on a project you can see in the console | `gcloud ... --account=` the account the console uses |
 | "Failed to impersonate" naming an unexpected address | The active account; pin `--account` |
 | Terraform 403 while gcloud works | ADC belongs to another identity (section above) |
-| Token refresh errors for one account | Re-authenticate that account only: `gcloud auth login <account>` (with the user's go) |
+| Token refresh errors for one account | Re-authenticate that account only: `gcloud auth login <account> --no-activate --force` (with the user's go). `--no-activate` leaves the active account alone; `--force` opens the browser even while gcloud still caches an access token, which otherwise makes it reuse the dying credential and renew nothing |

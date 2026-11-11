@@ -427,8 +427,9 @@ def access_token(cfg):
     token = out.stdout.decode().strip()
     if out.returncode != 0 or not token:
         detail = out.stderr.decode("utf-8", "replace").strip().splitlines()
-        raise RuntimeError("no Google token for %s (try: gcloud auth login): %s" % (
-            account or "the active gcloud account", detail[-1][:200] if detail else ""))
+        raise RuntimeError("no Google token for %s (try: gcloud auth login %s --no-activate --force): %s" % (
+            account or "the active gcloud account", account or "<account>",
+            detail[-1][:200] if detail else ""))
     return token
 
 
