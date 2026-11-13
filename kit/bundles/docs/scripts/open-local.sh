@@ -43,7 +43,9 @@ open_in_editor() {
   [ -n "$scheme" ] || return 1
   [ "$scheme" = cursor ] && dir="$HOME/.cursor/extensions" || dir="$HOME/.vscode/extensions"
   ls -d "$dir"/agent-skeleton.editor-browser-open-* >/dev/null 2>&1 || return 1
-  url=$(python3 -c 'import os,sys,urllib.parse as u; print(u.quote(u.urljoin("file:", u.quote(os.path.abspath(sys.argv[1]))), safe=""))' "$target") || return 1
+  # Path.as_uri() always gives file:///...; urljoin("file:", ...) drops the "//" on some
+  # Python versions.
+  url=$(python3 -c 'import os,sys,pathlib,urllib.parse as u; print(u.quote(pathlib.Path(os.path.abspath(sys.argv[1])).as_uri(), safe=""))' "$target") || return 1
   url="$scheme://agent-skeleton.editor-browser-open/open?url=$url"
   if [ "$(uname -s)" = "Darwin" ]; then
     open "$url"

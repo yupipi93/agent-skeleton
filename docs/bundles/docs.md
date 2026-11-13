@@ -16,7 +16,7 @@ On by default. Diagrams, print-ready PDFs and messages that survive a paste.
 
 | Script | Purpose |
 |---|---|
-| `kit/bundles/docs/scripts/chrome.sh` | `path`, `pdf IN OUT`, `screenshot IN OUT [W,H]` with headless Chrome and a throwaway profile; finds Chrome via `$CHROME_BIN`, `PATH` (Linux), the macOS app bundle, or snap |
+| `kit/bundles/docs/scripts/chrome.sh` | `path`, `pdf IN OUT`, `screenshot IN OUT [W,H]` with headless Chrome and a throwaway profile; IN is a file or a URL; Chrome's process group and the profile are removed on every exit path, `CHROME_TIMEOUT` (default 90 s) is a hard limit, `CHROME_EXTRA_FLAGS` adds flags; finds Chrome via `$CHROME_BIN`, `PATH` (Linux), the macOS app bundle, or snap |
 | `kit/bundles/docs/scripts/open-local.sh` | Open a local file: `$BROWSER_OPEN_CMD`, else a tab in the editor's browser when run inside Cursor or VS Code (needs the extension below; `BROWSER_OPEN_TARGET=system` skips it), else `open` (macOS), `xdg-open` (Linux), `wslview` (WSL) |
 | `kit/bundles/docs/scripts/rich-message.py` | Markdown draft to `chat-rich-message` page in one call: renders the template, runs the text guard and the em dash check, opens the page (about half a second) |
 | `kit/bundles/docs/scripts/install-editor-browser.sh` | Package and install `editor-browser-open` (`kit/bundles/docs/editor-extension/`), a URI handler that opens a URL in Cursor's browser tab or VS Code's Simple Browser; also run by `bin/skeleton setup docs` |

@@ -22,6 +22,7 @@ import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -151,7 +152,33 @@ def pdf_page_count(path: Path) -> int | None:
     return pages or None
 
 
+CHROME_TIMEOUT = 180  # seconds; override with BEXR_CHROME_TIMEOUT
+
+
+def _kill_group(proc: subprocess.Popen) -> None:
+    """SIGKILL Chrome's whole process group (it leads its own session), helpers included."""
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)
+    except (ProcessLookupError, PermissionError):
+        pass
+    try:
+        proc.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        pass
+
+
+def _raise_exit(signum, _frame):
+    raise SystemExit(128 + signum)
+
+
 def to_pdf(chrome: str, html: Path, pdf: Path) -> None:
+    """Print HTML to PDF with headless Chrome; Chrome never outlives this call.
+
+    Chrome runs in its own session, so its process group is killed on timeout, on any
+    exception (Ctrl-C included) and on SIGTERM / SIGHUP received while it runs.
+    """
+    timeout = float(os.environ.get("BEXR_CHROME_TIMEOUT") or CHROME_TIMEOUT)
+    stderr = ""
     with tempfile.TemporaryDirectory(prefix="bexr-chrome-") as profile:
         cmd = [
             chrome, "--headless=new", "--disable-gpu", "--no-sandbox",
@@ -161,9 +188,26 @@ def to_pdf(chrome: str, html: Path, pdf: Path) -> None:
             "--virtual-time-budget=6000",
             f"--print-to-pdf={pdf}", html.resolve().as_uri(),
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+        old = {s: signal.signal(s, _raise_exit) for s in (signal.SIGTERM, signal.SIGHUP)}
+        try:
+            proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                    text=True, start_new_session=True)
+        except OSError as exc:
+            for s, h in old.items():
+                signal.signal(s, h)
+            stderr = str(exc)
+        else:
+            try:
+                _, stderr = proc.communicate(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                stderr = f"chrome did not finish within {timeout:g}s and was killed"
+            finally:
+                # Always: on success it only finds helpers that outlived the browser.
+                _kill_group(proc)
+                for s, h in old.items():
+                    signal.signal(s, h)
     if not pdf.exists() or pdf.stat().st_size == 0:
-        sys.stderr.write(res.stderr[-2000:] + "\n")
+        sys.stderr.write((stderr or "")[-2000:] + "\n")
         sys.exit(5)
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -80,6 +81,22 @@ class BillingReportTest(unittest.TestCase):
         proc = self.run_tool("--config", str(SAMPLE / "report.toml"), "--out", str(self.tmp / "r.html"),
                              "--pdf", "--chrome", str(self.tmp / "no-such-chrome"))
         self.assertEqual(proc.returncode, 5, proc.stdout + proc.stderr)
+
+    def test_hanging_chrome_is_killed_with_its_group(self) -> None:
+        pids = self.tmp / "pids"
+        fake = self.tmp / "hang-chrome"
+        fake.write_text(f'#!/bin/sh\nsleep 60 &\necho "$$ $!" > "{pids}"\nwait\n')
+        fake.chmod(0o755)
+        proc = subprocess.run(
+            [sys.executable, str(GENERATE), "--config", str(SAMPLE / "report.toml"),
+             "--out", str(self.tmp / "r.html"), "--pdf", "--chrome", str(fake)],
+            capture_output=True, text=True, timeout=60,
+            env={"PATH": "/usr/bin:/bin", "PYTHONDONTWRITEBYTECODE": "1", "BEXR_CHROME_TIMEOUT": "2"})
+        self.assertEqual(proc.returncode, 5, proc.stdout + proc.stderr)
+        self.assertIn("killed", proc.stderr)
+        for pid in pids.read_text().split():
+            with self.assertRaises(ProcessLookupError, msg=f"pid {pid} survived"):
+                os.kill(int(pid), 0)
 
 
 if __name__ == "__main__":
