@@ -144,7 +144,10 @@ run_headless() {
     while [ $n -lt "$limit" ]; do
       if ! kill -0 "$CHROME_PID" 2>/dev/null; then
         # Chrome is done. If this script was SIGKILLed meanwhile, its cleanup never ran.
-        kill -0 $$ 2>/dev/null || rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG"
+        # A zombie (killed, not yet reaped by its parent) still answers kill -0.
+        case "$(ps -o stat= -p $$ 2>/dev/null)" in
+          ''|Z*) rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG" ;;
+        esac
         exit 0
       fi
       sleep 1

@@ -131,12 +131,13 @@ class DocsScriptsTest(unittest.TestCase):
                 break
             time.sleep(0.05)
         proc.kill()
-        proc.communicate(timeout=15)
+        # Not reaped yet: the script stays a zombie, which still answers kill -0.
         for _ in range(100):
             if not [x for x in self.tmp.iterdir() if x.name.startswith("chrome-profile.")]:
                 break
             time.sleep(0.1)
         self.assert_all_gone(pids)
+        proc.communicate(timeout=15)
 
     def test_url_input_passes_through(self) -> None:
         log = self.tmp / "args"
