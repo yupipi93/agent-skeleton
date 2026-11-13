@@ -120,6 +120,24 @@ class DocsScriptsTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 143)
         self.assert_all_gone(pids)
 
+    def test_sigkill_of_script_still_removes_profile_when_chrome_ends(self) -> None:
+        pids = self.tmp / "pids"
+        fake = write(self.tmp / "bin" / "slow chrome", f'#!/bin/sh\necho "$$" > "{pids}"\nsleep 2\n', mode=0o755)
+        e = {"PATH": "/usr/bin:/bin", "HOME": str(self.tmp), "TMPDIR": str(self.tmp), "CHROME_BIN": str(fake)}
+        proc = subprocess.Popen(["/bin/bash", str(CHROME), "screenshot", str(self.page), str(self.tmp / "o.png")],
+                                env=e, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        for _ in range(100):
+            if pids.exists() and pids.read_text().strip():
+                break
+            time.sleep(0.05)
+        proc.kill()
+        proc.communicate(timeout=15)
+        for _ in range(100):
+            if not [x for x in self.tmp.iterdir() if x.name.startswith("chrome-profile.")]:
+                break
+            time.sleep(0.1)
+        self.assert_all_gone(pids)
+
     def test_url_input_passes_through(self) -> None:
         log = self.tmp / "args"
         fake = write(self.tmp / "bin" / "argv chrome",

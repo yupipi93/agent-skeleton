@@ -142,7 +142,11 @@ run_headless() {
   (
     n=0
     while [ $n -lt "$limit" ]; do
-      kill -0 "$CHROME_PID" 2>/dev/null || exit 0
+      if ! kill -0 "$CHROME_PID" 2>/dev/null; then
+        # Chrome is done. If this script was SIGKILLed meanwhile, its cleanup never ran.
+        kill -0 $$ 2>/dev/null || rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG"
+        exit 0
+      fi
       sleep 1
       n=$((n + 1))
     done
