@@ -157,10 +157,11 @@ run_headless() {
     kill -TERM -- "-$CHROME_PID" 2>/dev/null || kill -TERM "$CHROME_PID" 2>/dev/null
     sleep 3
     kill -KILL -- "-$CHROME_PID" 2>/dev/null || kill -KILL "$CHROME_PID" 2>/dev/null
-    # If this script itself was SIGKILLed, nobody else will clean up.
-    if ! kill -0 $$ 2>/dev/null; then
-      rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG"
-    fi
+    # If this script itself was SIGKILLed (gone, or a zombie not yet reaped), nobody
+    # else will clean up.
+    case "$(ps -o stat= -p $$ 2>/dev/null)" in
+      ''|Z*) rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG" ;;
+    esac
   ) >/dev/null 2>&1 </dev/null &
   WATCHDOG_PID=$!
   set +m
