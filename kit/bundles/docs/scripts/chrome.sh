@@ -140,14 +140,18 @@ run_headless() {
   CHROME_PID=$!
   # Watchdog: one-second naps so killing it never leaves a long sleep behind.
   (
+    # This script is gone (SIGKILLed) when kill -0 fails, or when it is a zombie
+    # (killed, not yet reaped, still answers kill -0). ps only confirms a zombie, so a
+    # failing ps never makes a live script look gone.
+    script_gone() {
+      kill -0 $$ 2>/dev/null || return 0
+      ps -o stat= -p $$ 2>/dev/null | grep -q '^ *Z'
+    }
     n=0
     while [ $n -lt "$limit" ]; do
       if ! kill -0 "$CHROME_PID" 2>/dev/null; then
         # Chrome is done. If this script was SIGKILLed meanwhile, its cleanup never ran.
-        # A zombie (killed, not yet reaped by its parent) still answers kill -0.
-        case "$(ps -o stat= -p $$ 2>/dev/null)" in
-          ''|Z*) rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG" ;;
-        esac
+        script_gone && rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG"
         exit 0
       fi
       sleep 1
@@ -157,11 +161,10 @@ run_headless() {
     kill -TERM -- "-$CHROME_PID" 2>/dev/null || kill -TERM "$CHROME_PID" 2>/dev/null
     sleep 3
     kill -KILL -- "-$CHROME_PID" 2>/dev/null || kill -KILL "$CHROME_PID" 2>/dev/null
-    # If this script itself was SIGKILLed (gone, or a zombie not yet reaped), nobody
-    # else will clean up.
-    case "$(ps -o stat= -p $$ 2>/dev/null)" in
-      ''|Z*) rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG" ;;
-    esac
+    # If this script itself was SIGKILLed, nobody else will clean up.
+    if script_gone; then
+      rm -rf "$PROFILE_DIR" "$TIMED_OUT_FLAG"
+    fi
   ) >/dev/null 2>&1 </dev/null &
   WATCHDOG_PID=$!
   set +m
