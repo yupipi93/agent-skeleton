@@ -72,6 +72,69 @@ class DocsScriptsTest(unittest.TestCase):
         leftovers = [x.name for x in self.tmp.iterdir() if x.name.startswith("chrome-profile.")]
         self.assertEqual(leftovers, [], "temporary Chrome profiles must be removed")
 
+    def hanging_chrome(self) -> tuple[Path, Path]:
+        """A fake Chrome that never finishes and starts a helper; returns (binary, pid log)."""
+        pids = self.tmp / "pids"
+        fake = write(self.tmp / "bin" / "hang chrome",
+                     f'#!/bin/sh\nsleep 60 &\necho "$$ $!" > "{pids}"\nwait\n', mode=0o755)
+        return fake, pids
+
+    def assert_all_gone(self, pids: Path) -> None:
+        for _ in range(100):
+            if pids.exists() and pids.read_text().strip():
+                break
+            time.sleep(0.05)
+        for pid in pids.read_text().split():
+            for _ in range(50):
+                try:
+                    os.kill(int(pid), 0)
+                except ProcessLookupError:
+                    break
+                time.sleep(0.1)
+            else:
+                self.fail(f"process {pid} started by the fake Chrome is still alive")
+        leftovers = [x.name for x in self.tmp.iterdir() if x.name.startswith("chrome-profile.")]
+        self.assertEqual(leftovers, [], "temporary Chrome profiles must be removed")
+
+    def test_timeout_kills_chrome_group_and_profile(self) -> None:
+        fake, pids = self.hanging_chrome()
+        start = time.monotonic()
+        p = self.run_script(CHROME, "pdf", str(self.page), str(self.tmp / "o.pdf"),
+                            CHROME_BIN=str(fake), CHROME_TIMEOUT="2")
+        self.assertEqual(p.returncode, 4, p.stderr)
+        self.assertIn("CHROME_TIMEOUT", p.stderr)
+        self.assertLess(time.monotonic() - start, 15)
+        self.assert_all_gone(pids)
+
+    def test_sigterm_mid_run_cleans_up(self) -> None:
+        fake, pids = self.hanging_chrome()
+        e = {"PATH": "/usr/bin:/bin", "HOME": str(self.tmp), "TMPDIR": str(self.tmp), "CHROME_BIN": str(fake)}
+        proc = subprocess.Popen(["/bin/bash", str(CHROME), "screenshot", str(self.page), str(self.tmp / "o.png")],
+                                env=e, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        for _ in range(100):
+            if pids.exists() and pids.read_text().strip():
+                break
+            time.sleep(0.05)
+        proc.terminate()
+        proc.communicate(timeout=15)
+        self.assertEqual(proc.returncode, 143)
+        self.assert_all_gone(pids)
+
+    def test_url_input_passes_through(self) -> None:
+        log = self.tmp / "args"
+        fake = write(self.tmp / "bin" / "argv chrome",
+                     f'#!/bin/sh\nfor a in "$@"; do echo "$a"; done > "{log}"\n'
+                     'for a in "$@"; do case "$a" in --screenshot=*) printf PNG > "${a#--screenshot=}";; esac; done\n',
+                     mode=0o755)
+        p = self.run_script(CHROME, "screenshot", "http://127.0.0.1:9/x", str(self.tmp / "u.png"),
+                            CHROME_BIN=str(fake), CHROME_HIDE_SCROLLBARS="0", CHROME_EXTRA_FLAGS="--foo=1 --bar")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        args = log.read_text().split("\n")
+        self.assertIn("http://127.0.0.1:9/x", args)
+        self.assertIn("--foo=1", args)
+        self.assertIn("--bar", args)
+        self.assertNotIn("--hide-scrollbars", args)
+
     def test_usage_errors(self) -> None:
         self.assertEqual(self.run_script(CHROME).returncode, 2)
         self.assertEqual(self.run_script(CHROME, "pdf", str(self.tmp / "nope.html"), "x.pdf",

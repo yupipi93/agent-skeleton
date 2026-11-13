@@ -26,18 +26,22 @@ Lookup order: `$CHROME_BIN`, then `google-chrome`, `google-chrome-stable`, `chro
 as an app bundle, never on `PATH`), Chromium and Canary, the same under
 `~/Applications`, then `/snap/bin/chromium`.
 
-The raw command, if you need other flags:
+Need other flags? Stay on the script, do not run the binary by hand: a bare headless
+Chrome that its caller loses (a shell timeout, Ctrl-C) keeps running and rendering.
+The script kills Chrome's process group and deletes the profile on every exit path,
+with a hard limit of `CHROME_TIMEOUT` seconds (default 90). IN may also be an
+`http(s)://` URL.
 
 ```bash
-CHROME="$(kit/bundles/docs/scripts/chrome.sh path)"
-"$CHROME" --headless=new --disable-gpu --no-first-run \
-  --user-data-dir="$(mktemp -d)" --no-pdf-header-footer \
-  --run-all-compositor-stages-before-draw --virtual-time-budget=6000 \
-  --print-to-pdf=out.pdf "file://$PWD/in.html"
+CHROME_EXTRA_FLAGS="--blink-settings=preferredColorScheme=0" \
+CHROME_VIRTUAL_TIME_BUDGET=9000 CHROME_TIMEOUT=120 \
+  kit/bundles/docs/scripts/chrome.sh screenshot http://127.0.0.1:8080/ out.png 1440,900
 ```
 
-`--no-pdf-header-footer` removes Chrome's own header and footer (URL and date printed
-over your layout). Snap-packaged Chromium on Linux has a private `/tmp` and cannot read
+`CHROME_HIDE_SCROLLBARS=0` keeps scrollbars in a screenshot. PDFs are printed with
+`--no-pdf-header-footer`, which removes Chrome's own header and footer (URL and date
+printed over your layout). Rule `headless-chrome-cleanup` covers scripts that drive
+Chrome over the DevTools protocol. Snap-packaged Chromium on Linux has a private `/tmp` and cannot read
 files you wrote there: render from a folder under `$HOME`.
 
 ## The two traps that waste an afternoon
