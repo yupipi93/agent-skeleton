@@ -1,0 +1,184 @@
+/* House style starter: tokens and shared components for a small web tool.
+ * Copy into the tool, then set only the accent and nebula tints (three places: light,
+ * system dark, forced dark). See references/tokens.md. */
+:root {
+  --bg: #f4f1ea; --bg-2: #ebe6db;
+  --ink: #15161a; --muted: #5d6068; --faint: #75787f;
+  --line: rgba(21, 22, 26, .10);
+  --card: rgba(255, 255, 255, .74); --card-solid: #fbf9f4; --card-line: rgba(21, 22, 26, .08);
+  --surface-2: rgba(21, 22, 26, .045);
+  /* The tool's own colour: change these. */
+  --accent: #2a78d6; --accent-ink: #ffffff; --accent-soft: rgba(42, 120, 214, .12);
+  --nebula-a: rgba(42, 120, 214, .10); --nebula-b: rgba(214, 31, 75, .07); --nebula-c: rgba(27, 175, 122, .07);
+  --ok: #17703d; --ok-soft: #dcf1e4; --warn: #7d5600; --warn-soft: #f7ecd0;
+  --bad: #b42232; --bad-soft: #f8dede; --info: #2458c2; --info-soft: #e0e9fb;
+  --focus: #2f6fe4;
+  --glow: .55;
+  --shadow: 0 1px 2px rgba(20, 20, 30, .05), 0 12px 32px rgba(20, 20, 30, .08);
+  --radius: 18px;
+  --hover: brightness(.96);
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #07080c; --bg-2: #0d0f15;
+    --ink: #eef0f4; --muted: #a0a6b1; --faint: #858b96;
+    --line: rgba(238, 240, 244, .09);
+    --card: rgba(16, 18, 25, .66); --card-solid: #10121a; --card-line: rgba(238, 240, 244, .08);
+    --surface-2: rgba(238, 240, 244, .06);
+    --accent: #3987e5; --accent-ink: #061226; --accent-soft: rgba(57, 135, 229, .16);
+    --nebula-a: rgba(57, 135, 229, .16); --nebula-b: rgba(255, 77, 109, .11); --nebula-c: rgba(25, 158, 112, .10);
+    --ok: #3fcf8e; --ok-soft: rgba(63, 207, 142, .16); --warn: #e9b949; --warn-soft: rgba(233, 185, 73, .16);
+    --bad: #ff6b6b; --bad-soft: rgba(255, 107, 107, .16); --info: #7aa7ff; --info-soft: rgba(122, 167, 255, .16);
+    --focus: #7aa7ff;
+    --glow: 1;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 16px 40px rgba(0, 0, 0, .35);
+    --hover: brightness(1.15);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #07080c; --bg-2: #0d0f15;
+  --ink: #eef0f4; --muted: #a0a6b1; --faint: #858b96;
+  --line: rgba(238, 240, 244, .09);
+  --card: rgba(16, 18, 25, .66); --card-solid: #10121a; --card-line: rgba(238, 240, 244, .08);
+  --surface-2: rgba(238, 240, 244, .06);
+  --accent: #3987e5; --accent-ink: #061226; --accent-soft: rgba(57, 135, 229, .16);
+  --nebula-a: rgba(57, 135, 229, .16); --nebula-b: rgba(255, 77, 109, .11); --nebula-c: rgba(25, 158, 112, .10);
+  --ok: #3fcf8e; --ok-soft: rgba(63, 207, 142, .16); --warn: #e9b949; --warn-soft: rgba(233, 185, 73, .16);
+  --bad: #ff6b6b; --bad-soft: rgba(255, 107, 107, .16); --info: #7aa7ff; --info-soft: rgba(122, 167, 255, .16);
+  --focus: #7aa7ff;
+  --glow: 1;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 16px 40px rgba(0, 0, 0, .35);
+  --hover: brightness(1.15);
+  color-scheme: dark;
+}
+
+/* ------------------------------------------------------------------ base */
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); overflow-x: clip;
+  font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent;
+}
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 8px; }
+[hidden] { display: none !important; }
+a { color: var(--focus); }
+kbd { font: 600 11px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; color: var(--muted); background: var(--card-solid); }
+.eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* <div class="nebula" aria-hidden="true"></div> right after <body>. */
+.nebula { position: fixed; inset: -20vmax; z-index: 0; pointer-events: none;
+  background: radial-gradient(40vmax 34vmax at 22% 28%, var(--nebula-a), transparent 70%),
+    radial-gradient(36vmax 30vmax at 78% 62%, var(--nebula-b), transparent 70%),
+    radial-gradient(30vmax 26vmax at 50% 90%, var(--nebula-c), transparent 70%);
+  animation: drift 48s ease-in-out infinite alternate; }
+@keyframes drift {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  50% { transform: translate3d(3vmax, -2vmax, 0) rotate(8deg) scale(1.06); }
+  100% { transform: translate3d(-2vmax, 2vmax, 0) rotate(-6deg) scale(1.02); }
+}
+.app { position: relative; z-index: 1; max-width: 1360px; margin: 0 auto; min-height: 100vh;
+  padding: env(safe-area-inset-top, 0px) max(clamp(16px, 3vw, 32px), env(safe-area-inset-right, 0px)) 24px max(clamp(16px, 3vw, 32px), env(safe-area-inset-left, 0px)); }
+
+/* --------------------------------------------------------------- top bar */
+.top { position: sticky; top: 0; z-index: 6; display: flex; gap: 10px 14px; align-items: center; padding: 14px 0 10px; }
+.top::before { content: ""; position: absolute; z-index: -1; top: 0; bottom: 0; left: -100vmax; right: -100vmax;
+  background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+.brand { display: flex; align-items: center; gap: 10px; color: inherit; text-decoration: none; white-space: nowrap; min-width: 0; }
+.brand-name { font-size: 17px; font-weight: 650; letter-spacing: .02em; }
+.mark { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); animation: beat 2.4s ease-in-out infinite; }
+@keyframes beat { 0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 var(--accent-soft); }
+  14% { transform: scale(1.35); box-shadow: 0 0 0 7px var(--accent-soft); } 28% { transform: scale(1); }
+  42% { transform: scale(1.2); box-shadow: 0 0 0 3px var(--accent-soft); } }
+.status { padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line); font-size: 12px; color: var(--muted); }
+.status.off { color: var(--bad); border-color: color-mix(in srgb, var(--bad) 40%, transparent); background: var(--bad-soft); }
+.search { flex: 1; display: flex; align-items: center; gap: 8px; min-width: 0; max-width: 560px; margin-left: auto; height: 40px;
+  background: var(--card); border: 1px solid var(--card-line); border-radius: 999px; padding: 0 12px 0 14px;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.search input { border: 0; background: transparent; outline: none; width: 100%; min-width: 0; }
+.search:focus-within kbd { display: none; }
+.tools { display: flex; gap: 8px; align-items: center; flex: none; }
+
+/* ------------------------------------------------------- buttons, chips */
+.chip-btn { min-width: 36px; height: 36px; padding: 0 10px; border-radius: 999px; display: inline-grid; place-items: center; flex: none;
+  border: 1px solid var(--card-line); background: var(--card); font-weight: 600; line-height: 1;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); transition: transform .12s, filter .15s; }
+.pill-btn, .btn { display: inline-flex; align-items: center; gap: 7px; min-height: 36px; padding: 0 14px; border-radius: 999px;
+  border: 1px solid var(--card-line); background: var(--card-solid); font-weight: 600; white-space: nowrap; color: inherit;
+  text-decoration: none; transition: transform .12s, filter .15s; }
+.pill-btn.primary, .btn.primary { background: var(--ink); color: var(--bg); border-color: transparent; }
+.btn.accent { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+.btn.quiet { background: transparent; color: var(--muted); }
+.btn.danger { color: var(--bad); }
+.chip { display: inline-flex; gap: 6px; align-items: center; min-height: 34px; padding: 0 12px; border-radius: 999px; font-size: 13.5px;
+  border: 1px solid var(--card-line); background: var(--card); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  transition: transform .12s, filter .15s, background .2s, color .2s; }
+.chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: transparent; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; }
+.count { background: var(--accent); color: var(--accent-ink); border-radius: 999px; padding: 0 7px; font-size: 12px; line-height: 20px; font-variant-numeric: tabular-nums; }
+.count:empty { display: none; }
+@media (hover: hover) { .chip-btn:hover, .pill-btn:hover, .btn:hover, .chip:hover { filter: var(--hover); } }
+.chip-btn:active, .pill-btn:active, .btn:active, .chip:active { transform: scale(.95); }
+button:disabled { cursor: default; opacity: .6; }
+/* Busy feedback: <button data-state="busy|ok|fail">. */
+[data-state="busy"] { pointer-events: none; opacity: .7; }
+[data-state="ok"] { background: var(--ok-soft); color: var(--ok); }
+[data-state="fail"] { background: var(--bad-soft); color: var(--bad); }
+
+/* Segmented control: mutually exclusive options in one pill, the chosen one inverted. */
+.seg { display: inline-flex; gap: 3px; padding: 3px; border-radius: 999px; background: var(--card); border: 1px solid var(--card-line);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.seg button { border: 0; background: transparent; min-height: 30px; padding: 0 12px; color: var(--muted); border-radius: 999px; font-size: 13.5px;
+  transition: background .25s, color .25s, transform .12s; }
+.seg button[aria-pressed="true"], .seg button[aria-selected="true"] { background: var(--ink); color: var(--bg); }
+
+.tag { font-size: 11.5px; font-weight: 600; padding: 1px 7px; border-radius: 6px; background: var(--surface-2); }
+.key { font: 600 12px var(--mono); }
+
+/* ----------------------------------------------------------------- cards */
+.card { background: var(--card); border: 1px solid var(--card-line); border-radius: var(--radius); box-shadow: var(--shadow); padding: 14px 16px;
+  backdrop-filter: blur(18px) saturate(1.2); -webkit-backdrop-filter: blur(18px) saturate(1.2); }
+.card.flag { box-shadow: var(--shadow), inset 3px 0 0 var(--accent); }   /* unread, your turn */
+.callout { padding: 14px 16px; border-radius: 14px; background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+.callout .eyebrow { color: var(--accent); margin-bottom: 6px; }
+.hero-num { font-size: clamp(44px, 6vw, 72px); font-weight: 200; line-height: 1; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.empty { color: var(--muted); text-align: center; padding: 48px 16px; }
+.empty b { display: block; color: var(--ink); font-size: 17px; font-weight: 650; margin-bottom: 6px; }
+.skeleton { border-radius: var(--radius); border: 1px solid var(--card-line); min-height: 96px; margin-bottom: 10px;
+  background: linear-gradient(90deg, var(--card) 0%, var(--surface-2) 50%, var(--card) 100%); background-size: 200% 100%;
+  animation: shimmer 1.3s linear infinite; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+.build { text-align: center; color: var(--faint); font-size: 11.5px; padding: 18px 0 4px; font-variant-numeric: tabular-nums; }
+
+/* -------------------------------------------------------- toast, dialogs */
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 20;
+  max-width: calc(100% - 32px); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 999px; font-size: 13.5px;
+  box-shadow: var(--shadow); animation: rise-in .2s cubic-bezier(.2, .8, .2, 1); }
+.toast.err { background: var(--bad); color: #fff; }
+@keyframes rise-in { from { opacity: 0; transform: translate(-50%, 10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+dialog.sheet { border: 1px solid var(--card-line); border-radius: 20px; background: var(--card-solid); color: var(--ink); box-shadow: var(--shadow);
+  width: min(460px, calc(100% - 32px)); padding: 18px 20px 20px; }
+dialog.sheet[open] { animation: pop .25s cubic-bezier(.2, .8, .2, 1); }
+dialog.sheet::backdrop { background: rgba(10, 10, 14, .45); backdrop-filter: blur(3px); }
+@keyframes pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: scale(1); } }
+
+/* ----------------------------------------------------------------- phone */
+@media (max-width: 720px) {
+  .top { flex-wrap: wrap; }
+  .brand { flex: 1; }
+  .search { order: 3; flex-basis: 100%; max-width: none; margin-left: 0; }
+  .search kbd { display: none; }
+}
+@media (pointer: coarse) { .chip, .btn, .pill-btn, select { min-height: 40px; } .chip-btn { min-width: 40px; height: 40px; } }
+
+/* Last, so it wins. */
+@media (prefers-reduced-motion: reduce) {
+  .nebula, .mark, .skeleton, .toast, dialog.sheet[open] { animation: none; }
+  * { transition: none !important; }
+}
