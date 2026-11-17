@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>tool</title>
+<meta name="theme-color" content="#f4f1ea" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#07080c" media="(prefers-color-scheme: dark)">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<script src="/theme.js"></script>
+<script src="/i18n.js"></script>
+<link rel="stylesheet" href="/house.css">
+</head>
+<body>
+<div class="nebula" aria-hidden="true"></div>
+<div class="app">
+  <header class="top">
+    <a class="brand" href="/"><span class="mark" aria-hidden="true"></span><span class="brand-name">tool</span>
+      <span id="status" class="status" role="status">live</span></a>
+    <label class="search"><input id="q" type="search" placeholder="Search" aria-label="Search"><kbd aria-hidden="true">/</kbd></label>
+    <div class="tools">
+      <button class="pill-btn primary" type="button">Action <b class="count">3</b></button>
+      <button id="langBtn" class="chip-btn" type="button">🇬🇧</button>
+      <button id="themeBtn" class="chip-btn" type="button">◐</button>
+      <button id="helpBtn" class="chip-btn" type="button" aria-label="Keyboard shortcuts">?</button>
+    </div>
+  </header>
+  <nav class="seg" role="group" aria-label="Status">
+    <button type="button" aria-pressed="true">All</button><button type="button" aria-pressed="false">Pending</button>
+  </nav>
+  <main>
+    <div class="eyebrow">Pending</div>
+    <div class="hero-num">3</div>
+    <article class="card flag">A card with its state on its edge.</article>
+  </main>
+  <footer id="build" class="build">tool · release 1 · abc1234</footer>
+</div>
+<div id="toast" class="toast" role="status" hidden></div>
+<dialog id="help" class="sheet" aria-labelledby="helpTitle"><h2 id="helpTitle">Shortcuts</h2>
+  <p><kbd>/</kbd> search · <kbd>T</kbd> theme · <kbd>?</kbd> help · <kbd>Esc</kbd> close</p></dialog>
+<script>
+  document.getElementById('themeBtn').onclick = () => house.cycleTheme();
+  document.getElementById('langBtn').onclick = () => I18N.toggle();
+  document.getElementById('helpBtn').onclick = () => document.getElementById('help').showModal();
+  document.addEventListener('keydown', e => {
+    if (e.target.matches('input, textarea, select') || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === '/') { e.preventDefault(); document.getElementById('q').focus(); }
+    else if (e.key === 't' || e.key === 'T') house.cycleTheme();
+    else if (e.key === '?') document.getElementById('help').showModal();
+  });
+  I18N.apply();
+</script>
+</body>
+</html>

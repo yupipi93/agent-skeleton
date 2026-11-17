@@ -12,11 +12,12 @@ EXPECTED = {
     "gcp": {"gcp-iap-impersonation", "gcp-cloud-run-deploy-verify", "gcp-oauth-client-setup",
             "gcp-cloudsql-data-api", "gcp-billing-report", "gcp-identity-routing"},
     "docs": {"docs-mermaid-diagrams", "docs-print-ready-pdf", "docs-markdown-pdf-vscode",
-             "docs-plan-to-docs", "chat-rich-message"},
+             "docs-plan-to-docs", "chat-rich-message", "web-tool-house-style"},
     "loops": {"loop-engineering", "loopify"},
 }
 COMMANDS = {"docs-plan-to-docs", "loopify"}
-RULES = {"terraform": {"terraform-apply-requires-approval"}, "gcp": {"database-mutation-requires-approval"}}
+RULES = {"terraform": {"terraform-apply-requires-approval"}, "gcp": {"database-mutation-requires-approval"},
+         "docs": {"web-tools-house-style"}}
 
 
 class BundleContentTest(unittest.TestCase):

@@ -10,7 +10,14 @@ On by default. Diagrams, print-ready PDFs and messages that survive a paste.
 | `docs-print-ready-pdf` | HTML that paginates cleanly in headless Chrome: the scale-to-fit and fixed-height traps, print CSS, contrast, page-count check |
 | `docs-markdown-pdf-vscode` | The `yzane.markdown-pdf` extension: Chrome path, Mermaid 9.4.3 pin, page breaks, the editor engine-version mismatch |
 | `chat-rich-message` | Copy-paste-ready messages for Teams, Google Chat, Slack, Gmail: a local HTML page with Copy rich and Copy plain buttons, built from a Markdown draft by `rich-message.py` |
+| `web-tool-house-style` | Shared look and baseline features for local web tools: tokens, glass cards, theme and language switch, version footer, favicon recipe, shortcuts, a11y; starter files in `assets/` and a CDP screenshot script |
 | `docs-plan-to-docs` | **Command** (`/docs-plan-to-docs <plan>`): turn a finished `*.plan.md` into ADRs, guides, module READMEs and architecture docs, then delete the plan |
+
+## Rules
+
+| Rule | What it enforces |
+|---|---|
+| `web-tools-house-style` | Every web tool, panel or dashboard starts from `web-tool-house-style` and ships its baseline |
 
 ## Scripts
 
