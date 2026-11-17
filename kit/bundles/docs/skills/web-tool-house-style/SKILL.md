@@ -42,8 +42,9 @@ already there. Start from the files in `assets/`; do not restyle from scratch.
 
 ## Gotchas
 
-- `overflow-x: clip` on the page column also clips a full-bleed header band: put it on
-  `body`.
+- A full-bleed header band: size it with `left/right: calc(50% - 50vw)`, never
+  `-100vmax` (that widens the layout viewport: a phone can then pan sideways), and clip
+  sideways overflow on `html, body`, not on the page column (that clips the band).
 - Headless `chrome --screenshot` never returns on a page with an open EventSource or
   long poll; use `assets/shoot.mjs` (CDP, device emulation, cleans up Chrome on every
   exit path).

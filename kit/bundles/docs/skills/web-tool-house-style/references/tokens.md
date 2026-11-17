@@ -8,7 +8,7 @@ All values live in `assets/house.css`. This file says what each group is for.
 |---|---|---|---|
 | `--bg` / `--bg-2` | `#f4f1ea` / `#ebe6db` | `#07080c` / `#0d0f15` | Warm paper by day, deep night by dark |
 | `--ink` | `#15161a` | `#eef0f4` | Text, and the background of a selected segment |
-| `--muted` / `--faint` | `#5d6068` / `#75787f` | `#a0a6b1` / `#858b96` | Secondary text; `--faint` still passes 4.5:1 |
+| `--muted` / `--faint` | `#5d6068` / `#686b72` | `#a0a6b1` / `#858b96` | Secondary text; `--faint` still passes 4.5:1 |
 | `--line`, `--card-line` | ink at 10 % / 8 % | ink at 9 % / 8 % | Hairlines |
 | `--card` | `rgba(255,255,255,.74)` | `rgba(16,18,25,.66)` | Translucent glass, always with `backdrop-filter` |
 | `--card-solid` | `#fbf9f4` | `#10121a` | Popovers, dialogs, inputs over glass |
