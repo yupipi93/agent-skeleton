@@ -50,7 +50,10 @@ and its output, or a screenshot path), plus a concrete fix.
 
 Output, in this order:
 1. A table of the release items and fixes: item, holds or fails, evidence.
-2. Bugs, ranked by impact, each with evidence and a fix.
+2. Bugs, ranked by impact, each tagged MAJOR (wrong behaviour, crash, data loss,
+   security or auth, broken send or safety guard, regression) or MINOR (wording,
+   docs, naming, styling, a missing label, a one-spot edge case), with evidence and
+   a fix.
 3. Improvements (not bugs), short.
 If you find no bugs, say "nothing more found" explicitly. Do not pad the report.
 Write in English, plain prose.

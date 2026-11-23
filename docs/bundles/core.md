@@ -22,7 +22,7 @@ on, the backlog, release and audit method, and the shared script library.
 | `permission-prompt-hygiene` | Batch prompted commands, never disguise them, write files with the editor tools |
 | `no-broad-process-kill` | No `pkill` / `killall` by pattern; stop only the PIDs you started |
 | `headless-chrome-cleanup` | Screenshots and PDFs through `chrome.sh`; CDP scripts kill Chrome's group and profile on every exit path, with timeouts |
-| `audited-releases` | Deliverables that grow by requests: backlog file, numbered tested releases, a fresh auditor after each one until clean |
+| `audited-releases` | Deliverables that grow by requests: backlog file, numbered tested releases, a fresh auditor after each release with major changes, minor findings fixed without a new audit |
 
 ## Scripts
 
