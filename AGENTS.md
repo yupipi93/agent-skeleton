@@ -59,7 +59,8 @@ A gate whose bundle is disabled is not loaded; follow the intent anyway when the
 - Never commit secrets (`.env`, tokens, keys, credential files).
 - Plans go in `plans/<topic>.plan.md` (skill `plan-files`).
 - A tool or deliverable that grows by requests is built from a `BACKLOG.md` in numbered,
-  tested releases, each checked by a fresh independent auditor until it finds nothing
+  tested releases; a release with major changes is checked by a fresh independent
+  auditor, and minor findings are fixed without launching another one
   (rule `audited-releases`, skill `backlog-release-audit`).
 
 ## Commits

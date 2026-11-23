@@ -1,14 +1,15 @@
 ---
 name: backlog-release-audit
-description: "Build a tool in audited releases: every request goes to a BACKLOG.md item with its design, ship numbered tested releases, then a fresh read-only auditor checks each one until it finds nothing. Use when iterating on a tool, app or script set the user keeps adding to, or asked to audit until clean."
+description: "Build a tool in audited releases: every request goes to a BACKLOG.md item with its design, ship numbered tested releases, then a fresh auditor checks releases with major changes; minor findings get no new audit. Use when iterating on a tool the user keeps adding to, or asked to audit until clean."
 ---
 
 # Backlog, releases and an independent audit
 
 A deliverable that grows by requests is built as a loop: requests land in a backlog file
 next to the code, work ships in numbered releases with tests and a real run, and after
-every release a fresh auditor that has never seen the work reviews it. Its findings feed
-the next release. The loop ends when an auditor reports "nothing more found".
+every release with major changes a fresh auditor that has never seen the work reviews
+it. Its findings feed the next release. The loop ends when an auditor reports "nothing
+more found" or only minor findings: those are fixed and committed without another audit.
 
 The method exists because the implementer is a poor judge of its own work, and because a
 request that is only in the chat history gets lost by the next session.
@@ -77,7 +78,9 @@ button has an accessible name, and the cache key includes the user.
 
 ## 3. The independent auditor
 
-After each release, launch an auditor:
+After each release with **major** changes (section 4 defines major and minor), launch
+an auditor. A release made only of minor changes ships with its tests and commit and no
+auditor.
 
 - a **fresh** general-purpose agent, in the background, read-only. **Never the same
   agent twice**: a new one each round, so it is not anchored on earlier conclusions;
@@ -98,21 +101,39 @@ While it runs:
   restart what it is testing, or its evidence goes stale.
 - Never predict or summarise its result before it arrives. If the user asks, say it is
   still running.
+- **End every reply with the running marker** while it runs, the launch reply included:
+  a last line `🔎 Auditor running: release N` (several: `🔎 2 auditors running:
+  releases N, M`), written in the user's language. The user glances at the chat to
+  know whether a process is still alive and must not close the conversation; a reply
+  without the marker reads as "nothing running". When the last auditor has reported
+  and no new one is launched, end that reply with `✅ Audit finished` instead.
 
 ## 4. Apply and repeat
 
 1. Read the report as **claims**. Verify each one yourself: reproduce it, read the cited
    line, run the test. Reject a false positive with a one-line reason.
-2. Fix every confirmed bug with a test, highest rank first. Improvements either go into
+2. **Classify** each confirmed finding:
+   - **Major**: wrong behaviour, a crash, data loss or corruption, a security or auth
+     gap, a broken send, preview or safety guard, a regression of an earlier fix, or a
+     fix that changes logic across several places.
+   - **Minor**: wording, docs, comments, naming, styling or layout polish, a missing
+     label or accessible name, a small validation or edge case fixed in one spot,
+     test-only gaps. When unsure, it is major.
+3. Fix every confirmed bug with a test, highest rank first. Improvements either go into
    the next release or into the backlog as `audit N` items.
-3. Ship the next release (section 2) with those fixes and any new backlog items.
-4. Launch a **new** auditor on that release.
-5. **Stop** when an auditor reports "nothing more found" for bugs. Open improvements stay
-   in the backlog.
+4. Ship the next release (section 2) with those fixes and any new backlog items.
+5. **Launch a new auditor only when that release holds a major fix or a new feature.**
+   When every fix in it is minor, the loop stops there: fixes committed, suite green,
+   **no new auditor**. Do not launch one to confirm minor fixes.
+6. **Stop** when an auditor reports "nothing more found" or only minor findings (fixed
+   as above). Open improvements stay in the backlog.
 
-Also stop and ask the user when the same finding returns after two fixes, when a fix
-needs a decision only the user can make, or when the round count or cost the user set is
-reached.
+While major findings remain, the loop goes on by itself: no round limit and no
+question to the user before the next auditor, so the work never stalls waiting for a
+reply. When the same finding returns after two fixes, take a different approach to the
+fix and note it in the round report; keep going. Stop and ask the user only when a fix
+needs a decision only the user can make (a safety gate, a product choice), or when a
+round count or cost limit the user set is reached.
 
 ## 5. Safety
 
@@ -155,7 +176,9 @@ A short report to the user:
 - **Audit**: what the previous auditor found, what was confirmed and fixed, what was
   rejected and why, what went to the backlog.
 - **Tests**: the count and result.
-- **Running**: the auditor launched on release N, or "audit clean, loop stopped".
+- **Running**: the auditor launched on release N, "audit clean, loop stopped", or
+  "minor fixes only, loop stopped without a new audit".
+- Last line: the `🔎 Auditor running` marker or `✅ Audit finished` (section 3).
 
 ## Gotchas
 
