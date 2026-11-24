@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Block a draft for people that is longer than its kind allows.
+"""Keep a draft for people as short as possible: a target to aim for, a hard maximum.
 
-Readers stop reading long text. Every kind of text has a character budget; a draft over
-it is cut before it is shown or sent:
+Readers stop reading long text. Every kind of text has a target (what a person would
+write) and a maximum (never more). Write for the target; the maximum is a ceiling, not
+a size to fill:
 
   kit/bundles/style/scripts/text-budget.py --kind chat draft.md
   printf '%s' "$text" | kit/bundles/style/scripts/text-budget.py --kind comment
@@ -12,22 +13,25 @@ Only what a person reads is counted: fenced code blocks, URLs (a Markdown link c
 its text only), Markdown markup (`**`, backticks, heading and list markers) and repeated
 whitespace are left out. Commands and links cost nothing; prose does.
 
-Budgets (characters), overridable per kind with TEXT_BUDGET_<KIND> in the environment or
-in ~/.config/agent-skeleton/style.env, and for one run with --max:
+Characters (target / maximum):
 
-  chat     200  Chat, Teams, Slack, WhatsApp message
-  comment  250  ticket or PR comment
-  notify   160  push notification
-  commit   250  commit message, subject and body
-  email    450  email body
-  pr       500  pull request body
-  ticket   500  ticket description
-  post     600  social post, announcement
-  reply    600  an agent's reply to its user
-  voice    900  spoken summary (about one minute)
+  chat      80 / 200  Chat, Teams, Slack, WhatsApp message
+  notify    80 / 160  push notification
+  commit   100 / 250  commit message, subject and body
+  comment  120 / 250  ticket or PR comment
+  email    250 / 450  email body
+  pr       300 / 500  pull request body
+  ticket   300 / 500  ticket description
+  post     300 / 600  social post, announcement
+  reply    300 / 600  an agent's reply to its user
+  voice    500 / 900  spoken summary (30 to 60 seconds)
 
-Exit codes: 0 within budget, 2 over budget (prints how much to cut), 64 usage error.
-Read-only, Python 3.8+, stdlib only.
+Override per kind with TEXT_TARGET_<KIND> and TEXT_BUDGET_<KIND> (the maximum) in the
+environment or in ~/.config/agent-skeleton/style.env; --max N sets the maximum (and caps
+the target) for one run.
+
+Exit codes: 0 within target, 1 over target (shorten it if you can), 2 over the maximum
+(cut it), 64 usage error. Read-only, Python 3.8+, stdlib only.
 """
 import argparse
 import os
@@ -35,17 +39,17 @@ import re
 import sys
 from pathlib import Path
 
-DEFAULTS = {
-    "chat": 200,
-    "comment": 250,
-    "notify": 160,
-    "commit": 250,
-    "email": 450,
-    "pr": 500,
-    "ticket": 500,
-    "post": 600,
-    "reply": 600,
-    "voice": 900,
+DEFAULTS = {  # kind: (target, maximum)
+    "chat": (80, 200),
+    "notify": (80, 160),
+    "commit": (100, 250),
+    "comment": (120, 250),
+    "email": (250, 450),
+    "pr": (300, 500),
+    "ticket": (300, 500),
+    "post": (300, 600),
+    "reply": (300, 600),
+    "voice": (500, 900),
 }
 
 CONFIG = Path(os.path.expanduser("~/.config/agent-skeleton/style.env"))
@@ -67,15 +71,23 @@ def config_value(key):
     return None
 
 
-def budget_for(kind):
-    raw = config_value("TEXT_BUDGET_" + kind.upper())
+def _number(key, default):
+    raw = config_value(key)
     if raw is None:
-        return DEFAULTS[kind], "default"
+        return default, False
     try:
-        value = int(raw)
+        return int(raw), True
     except ValueError:
-        raise SystemExit("text-budget: TEXT_BUDGET_%s is not a number" % kind.upper())
-    return value, "config"
+        raise SystemExit("text-budget: %s is not a number" % key)
+
+
+def limits_for(kind):
+    """(target, maximum, source) for a kind; the target never exceeds the maximum."""
+    target, maximum = DEFAULTS[kind]
+    maximum, max_set = _number("TEXT_BUDGET_" + kind.upper(), maximum)
+    target, target_set = _number("TEXT_TARGET_" + kind.upper(), target)
+    source = "config" if (max_set or target_set) else "default"
+    return min(target, maximum), maximum, source
 
 
 FENCE_RE = re.compile(r"^(```|~~~).*?^\1[^\n]*$", re.S | re.M)
@@ -97,18 +109,19 @@ def readable(text):
 
 def main(argv=None):
     p = argparse.ArgumentParser(
-        description="Block a draft that is longer than its kind allows.")
+        description="Keep a draft as short as possible: a target and a hard maximum.")
     p.add_argument("path", nargs="?", help="draft file (default: stdin)")
     p.add_argument("--file", help="draft file (same as the positional path)")
     p.add_argument("--kind", choices=sorted(DEFAULTS), help="kind of text")
-    p.add_argument("--max", type=int, help="budget for this run only")
-    p.add_argument("--list", action="store_true", help="print the budgets in force")
+    p.add_argument("--max", type=int, help="maximum for this run only")
+    p.add_argument("--list", action="store_true", help="print the limits in force")
     args = p.parse_args(argv)
 
     if args.list:
+        print("%-8s %6s %5s" % ("kind", "target", "max"))
         for kind in DEFAULTS:
-            value, source = budget_for(kind)
-            print("%-8s %5d  %s" % (kind, value, source))
+            target, maximum, source = limits_for(kind)
+            print("%-8s %6d %5d  %s" % (kind, target, maximum, source))
         return 0
     if not args.kind and args.max is None:
         p.print_usage(sys.stderr)
@@ -122,20 +135,27 @@ def main(argv=None):
         print("text-budget: cannot read %s (%s)" % (path, exc.strerror), file=sys.stderr)
         return 64
 
-    if args.max is not None:
-        limit = args.max
+    if args.kind:
+        target, maximum, _ = limits_for(args.kind)
     else:
-        limit, _ = budget_for(args.kind)
+        target = maximum = args.max
+    if args.max is not None:
+        maximum = args.max
+        target = min(target, maximum)
     label = args.kind or "text"
     count = len(readable(text))
 
-    if count <= limit:
-        print("text-budget: ok, %s %d/%d chars" % (label, count, limit))
+    if count <= target:
+        print("text-budget: ok, %s %d chars (target %d, max %d)" % (label, count, target, maximum))
         return 0
-    over = count - limit
+    if count <= maximum:
+        print("text-budget: long, %s %d chars. Target %d: cut %d if you can; a person "
+              "would say it in fewer (max %d)." % (label, count, target, count - target, maximum))
+        return 1
+    over = count - maximum
     print("text-budget: over, %s %d/%d chars. Cut %d (%d%%): keep the ask and the facts, "
-          "move detail to the ticket or doc and link it." % (
-              label, count, limit, over, round(100 * over / count)))
+          "move detail to the ticket or doc and link it. Target %d." % (
+              label, count, maximum, over, round(100 * over / count), target))
     return 2
 
 

@@ -59,20 +59,26 @@ The full catalogue, section by section, is in
 
 ## Length budget
 
-Every kind of text has a character budget. `text-budget.py` counts only what a person
-reads (fenced code, URLs and Markdown markup are free) and exits 2 over it:
+Every kind of text has a **target**, what a person would write, and a **maximum**, a
+ceiling never to be filled. Start from the target: write the one-line version first and
+add only what the reader cannot act without. `text-budget.py` counts only what a person
+reads (fenced code, URLs and Markdown markup are free); it exits 1 over the target
+(shorten it if you can) and 2 over the maximum (cut it):
 
-| Kind | Budget | Kind | Budget |
-|---|---|---|---|
-| `chat` (Chat, Teams, Slack) | 200 | `email` (body) | 450 |
-| `notify` (push) | 160 | `pr` (body) | 500 |
-| `comment` (ticket, PR) | 250 | `ticket` (description) | 500 |
-| `commit` (subject + body) | 250 | `post` (social, announcement) | 600 |
-| `reply` (agent to its user) | 600 | `voice` (spoken, ~1 min) | 900 |
+| Kind | Target | Max |
+|---|---|---|
+| `chat` (Chat, Teams, Slack) | 80 | 200 |
+| `notify` (push) | 80 | 160 |
+| `commit` (subject + body) | 100 | 250 |
+| `comment` (ticket, PR) | 120 | 250 |
+| `email` (body) | 250 | 450 |
+| `pr` (body), `ticket` (description) | 300 | 500 |
+| `post` (social), `reply` (agent to its user) | 300 | 600 |
+| `voice` (spoken) | 500 (30 s) | 900 (60 s) |
 
-Override per kind with `TEXT_BUDGET_<KIND>` in the environment or in
-`~/.config/agent-skeleton/style.env`, or once with `--max N` when the user asked for a
-long text (a report, a "con detalle" summary). Docs and READMEs have no budget, but the
+Override per kind with `TEXT_TARGET_<KIND>` and `TEXT_BUDGET_<KIND>` (maximum) in the
+environment or in `~/.config/agent-skeleton/style.env`, or once with `--max N` when the
+user asked for a long text (a report, a "con detalle" summary). Docs and READMEs have no budget, but the
 same habit applies: one idea per paragraph, delete what does not change a decision.
 
 How to cut, in order:
@@ -97,8 +103,9 @@ How to cut, in order:
    Exit 0 is clean (or notes only), 1 means warnings to rewrite, 2 means a HARD finding
    (chatbot artifact, placeholder, em dash, knowledge-cutoff line, sycophantic opener).
    Then the length: `kit/bundles/style/scripts/text-budget.py --kind chat draft.md`
-   (exit 2 means cut, see "Length budget").
-3. Fix every HARD finding and every budget overrun. Rewrite each WARN using the table below; a warning you keep
+   (exit 1 shorten if you can, exit 2 cut; see "Length budget").
+3. Fix every HARD finding and every overrun of the maximum; get under the target when
+   nothing the reader needs is lost. Rewrite each WARN using the table below; a warning you keep
    needs a reason (a quoted title, a product name in a heading).
 4. Read the text once as the recipient. Would a colleague write this sentence in this
    channel? If it sounds like a brochure or a support bot, cut it.
@@ -122,7 +129,7 @@ How to cut, in order:
 ## Self-check before sending
 
 - Does the first sentence say the thing?
-- Within its budget (`text-budget.py`)?
+- At or near its target, never over the maximum (`text-budget.py`)?
 - Could any sentence be deleted without losing a fact? Delete it.
 - Any word from the vocabulary list where a plain one works?
 - Any `not X but Y`, triad, or participle tail (`..., highlighting ...`)?

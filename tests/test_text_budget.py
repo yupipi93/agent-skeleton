@@ -40,7 +40,7 @@ class TextBudgetTest(unittest.TestCase):
                 "```bash\n" + "echo hi\n" * 100 + "```\n- uno\n- dos\n")
         proc = self.run_script(text, "--kind", "notify")
         self.assertEqual(proc.returncode, 0, proc.stdout)
-        self.assertIn("ok, notify 26/160", proc.stdout)
+        self.assertIn("ok, notify 26 chars (target 80, max 160)", proc.stdout)
 
     def test_env_and_config_file_override(self):
         proc = self.run_script("x" * 50, "--kind", "chat", env={"TEXT_BUDGET_CHAT": "40"})
@@ -52,7 +52,14 @@ class TextBudgetTest(unittest.TestCase):
         proc = self.run_script("x" * 50, "--kind", "chat")
         self.assertEqual(proc.returncode, 0, proc.stdout)
         listing = self.run_script("", "--list")
-        self.assertIn("chat        60  config", listing.stdout)
+        self.assertIn("chat         60    60  config", listing.stdout)
+
+    def test_over_target_warns_but_does_not_block(self):
+        proc = self.run_script("x" * 120, "--kind", "chat")
+        self.assertEqual(proc.returncode, 1, proc.stdout)
+        self.assertIn("Target 80: cut 40", proc.stdout)
+        proc = self.run_script("x" * 120, "--kind", "chat", env={"TEXT_TARGET_CHAT": "150"})
+        self.assertEqual(proc.returncode, 0, proc.stdout)
 
     def test_max_and_usage(self):
         self.assertEqual(self.run_script("abcdef", "--max", "5").returncode, 2)

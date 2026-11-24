@@ -20,11 +20,12 @@ the tells that mark text as machine-written:
 - No "In summary" / "En resumen", no "It's important to note" / "Es importante
   destacar". Name sources instead of "experts say".
 - Sentence-case headings, bold rarely, lists only for real lists, straight quotes.
-- **Short.** People stop reading long text. Write the fewest characters that carry the
-  ask and the facts, as a colleague would; detail goes in the ticket or doc you link.
-  Every kind of text has a budget (chat 200 characters, ticket comment 250, email 450,
-  PR body and ticket description 500, your reply 600, spoken summary 900; code and URLs
-  are free). Over budget: cut, do not reformat.
+- **As short as possible.** People stop reading long text. Write the fewest characters
+  that carry the ask and the facts, as a colleague would; detail goes in the ticket or
+  doc you link. Aim for the target: chat 80 characters (one line), comment 120, email
+  250, PR and ticket 300, your reply 300, spoken summary 500. The maximum (chat 200,
+  comment 250, email 450, PR and ticket 500, reply 600, voice 900) is a ceiling, never
+  a size to fill. Code and URLs are free.
 
 For a draft that leaves the machine, run
 `kit/bundles/style/scripts/ai-tells.py draft.md` and
