@@ -53,17 +53,21 @@ Write the body to a file (`--template` on either script prints this scaffold):
 
 ```markdown
 ## Summary
-What changed and why. Link the ticket.
+What changed and why, one or two lines. Link the ticket.
 
 ## Changes
-- Concrete list of edits
+- One line per edit that matters
 
 ## Validation
-- How it was verified (test run, plan summary, manual checks)
+- How it was verified (test run, plan counts), one line
 
 ## Rollback
-- How to revert safely (revert the merge, re-apply the previous version, ...)
+- How to revert, one line
 ```
+
+Keep the prose within 500 characters (`kit/bundles/style/scripts/text-budget.py --kind pr
+pr.md`): the reviewer reads the diff, the body only has to say why and how it was
+checked. A plan excerpt or command output goes in a fenced block, which is not counted.
 
 The PR text leaves the machine, so it passes the outbound text gate (rule
 `outbound-text-safety`): no secrets, no internal-only credentials or hosts. Both scripts

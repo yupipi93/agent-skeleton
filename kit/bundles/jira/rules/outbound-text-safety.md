@@ -8,7 +8,9 @@ apply: always
 Applies to every write that carries text to another system: Jira issues and comments,
 pull request titles and bodies, chat or email messages, wiki pages.
 
-1. **Draft** the text in a file. Keep it to what the reader needs.
+1. **Draft** the text in a file. Keep it to what the reader needs, within its character
+   budget: `kit/bundles/style/scripts/text-budget.py --kind <chat|comment|email|pr|ticket> <draft>`
+   (exit 2 means cut it).
 2. **Scan** it: `kit/bundles/core/scripts/text-guard.sh --file <draft>` (exit 2 means
    blocked). The jira and PR scripts run the same scan and refuse to send on a match,
    but the scan is a backstop, not the review.
