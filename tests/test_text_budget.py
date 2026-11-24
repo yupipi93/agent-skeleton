@@ -61,6 +61,17 @@ class TextBudgetTest(unittest.TestCase):
         proc = self.run_script("x" * 120, "--kind", "chat", env={"TEXT_TARGET_CHAT": "150"})
         self.assertEqual(proc.returncode, 0, proc.stdout)
 
+    def test_exception_passes_with_a_reason_only(self):
+        why = "the three error codes are all needed to retry"
+        proc = self.run_script("x" * 300, "--kind", "chat", "--exception", why)
+        self.assertEqual(proc.returncode, 0, proc.stdout)
+        self.assertIn("exception, chat 300 chars", proc.stdout)
+        self.assertIn(why, proc.stdout)
+        proc = self.run_script("x" * 300, "--kind", "chat", "--exception", "needed")
+        self.assertEqual(proc.returncode, 64)
+        proc = self.run_script("short", "--kind", "chat", "--exception", why)
+        self.assertIn("ok, chat", proc.stdout)
+
     def test_max_and_usage(self):
         self.assertEqual(self.run_script("abcdef", "--max", "5").returncode, 2)
         self.assertEqual(self.run_script("abc").returncode, 64)

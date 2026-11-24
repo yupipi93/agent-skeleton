@@ -30,8 +30,13 @@ Override per kind with TEXT_TARGET_<KIND> and TEXT_BUDGET_<KIND> (the maximum) i
 environment or in ~/.config/agent-skeleton/style.env; --max N sets the maximum (and caps
 the target) for one run.
 
-Exit codes: 0 within target, 1 over target (shorten it if you can), 2 over the maximum
-(cut it), 64 usage error. Read-only, Python 3.8+, stdlib only.
+Exceptions: first try several short messages, each within its own budget. When one text
+really needs more (every line carries information the reader needs to act, or the user
+asked for a long text), pass --exception "<why>": the draft passes with the reason
+printed, and the reason goes to the user next to the draft.
+
+Exit codes: 0 within target (or an exception), 1 over target (shorten it if you can),
+2 over the maximum (cut it), 64 usage error. Read-only, Python 3.8+, stdlib only.
 """
 import argparse
 import os
@@ -51,6 +56,8 @@ DEFAULTS = {  # kind: (target, maximum)
     "reply": (300, 600),
     "voice": (500, 900),
 }
+
+MIN_REASON = 15  # an exception has to say why, not just "needed"
 
 CONFIG = Path(os.path.expanduser("~/.config/agent-skeleton/style.env"))
 _LINE_RE = re.compile(r"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$")
@@ -115,7 +122,15 @@ def main(argv=None):
     p.add_argument("--kind", choices=sorted(DEFAULTS), help="kind of text")
     p.add_argument("--max", type=int, help="maximum for this run only")
     p.add_argument("--list", action="store_true", help="print the limits in force")
+    p.add_argument("--exception", metavar="WHY",
+                   help="let a longer text pass; WHY says what would be lost if cut, "
+                        "or that the user asked for it (at least %d characters)" % MIN_REASON)
     args = p.parse_args(argv)
+    reason = (args.exception or "").strip()
+    if args.exception is not None and len(reason) < MIN_REASON:
+        print("text-budget: --exception needs the reason: what the reader would lose if "
+              "it were cut, or that the user asked for it", file=sys.stderr)
+        return 64
 
     if args.list:
         print("%-8s %6s %5s" % ("kind", "target", "max"))
@@ -147,6 +162,11 @@ def main(argv=None):
 
     if count <= target:
         print("text-budget: ok, %s %d chars (target %d, max %d)" % (label, count, target, maximum))
+        return 0
+    if reason:
+        print("text-budget: exception, %s %d chars (target %d, max %d). Reason: %s. "
+              "Tell the user this reason with the draft." % (
+                  label, count, target, maximum, reason))
         return 0
     if count <= maximum:
         print("text-budget: long, %s %d chars. Target %d: cut %d if you can; a person "

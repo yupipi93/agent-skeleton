@@ -25,7 +25,9 @@ the tells that mark text as machine-written:
   doc you link. Aim for the target: chat 80 characters (one line), comment 120, email
   250, PR and ticket 300, your reply 300, spoken summary 500. The maximum (chat 200,
   comment 250, email 450, PR and ticket 500, reply 600, voice 900) is a ceiling, never
-  a size to fill. Code and URLs are free.
+  a size to fill. Code and URLs are free. More only by exception: split into several
+  messages first, then `--exception "<why>"` when the user asked or you can name what
+  the reader would lose, and tell the user that reason.
 
 For a draft that leaves the machine, run
 `kit/bundles/style/scripts/ai-tells.py draft.md` and

@@ -77,8 +77,16 @@ reads (fenced code, URLs and Markdown markup are free); it exits 1 over the targ
 | `voice` (spoken) | 500 (30 s) | 900 (60 s) |
 
 Override per kind with `TEXT_TARGET_<KIND>` and `TEXT_BUDGET_<KIND>` (maximum) in the
-environment or in `~/.config/agent-skeleton/style.env`, or once with `--max N` when the
-user asked for a long text (a report, a "con detalle" summary). Docs and READMEs have no budget, but the
+environment or in `~/.config/agent-skeleton/style.env`.
+
+**Exceptions.** When one text really needs more than its maximum:
+
+1. First split it: several short messages, each within its own budget.
+2. Still too long for one text: pass `--exception "<why>"`. Only two reasons are valid:
+   the user asked for a long text (a report, a "con detalle" summary), or you can name
+   what the reader would lose if it were cut (each extra line carries something they
+   need to act). "It's important" or "for context" is not a reason.
+3. Show the user that reason next to the draft, before it is sent. Docs and READMEs have no budget, but the
 same habit applies: one idea per paragraph, delete what does not change a decision.
 
 How to cut, in order:
