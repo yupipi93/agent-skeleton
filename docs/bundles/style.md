@@ -38,6 +38,8 @@ kit/bundles/style/scripts/text-budget.py --list           # targets and maximums
 
 Override per kind with `TEXT_TARGET_<KIND>` and `TEXT_BUDGET_<KIND>` (maximum) in the
 environment or in `~/.config/agent-skeleton/style.env`, or the maximum once with `--max N`.
+A text that really needs more passes with `--exception "<why>"` (the user asked for it,
+or the reason names what the reader would lose); split into several messages first.
 
 Fenced code, inline code and `>` quotes are skipped for prose checks; chatbot artifacts
 are searched everywhere. The format checks target text for people: skills and runbooks
