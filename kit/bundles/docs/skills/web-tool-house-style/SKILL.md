@@ -1,6 +1,6 @@
 ---
 name: web-tool-house-style
-description: "House style and default features for local web tools and dashboards: tokens, glass cards, nebula, chips, theme and language switch, version footer, favicon, shortcuts, a11y. Use when creating or redesigning any web tool, panel or dashboard."
+description: "House style and default features for local web tools and dashboards: tokens, glass top bar, nebula, chips, theme and language switch, version footer, favicon, shortcuts, a11y. Use when creating or redesigning any web tool, panel or dashboard."
 ---
 
 # Web tool house style
@@ -22,7 +22,8 @@ already there. Start from the files in `assets/`; do not restyle from scratch.
 1. **Copy the starter** into the tool's static folder and link it:
    `assets/house.css` (tokens + components), `assets/theme.js` (in `<head>`, before the
    CSS: no theme flash), `assets/i18n.js` when the UI has more than one language,
-   `assets/build.py` (or its logic) for the version footer, `assets/shoot.mjs` for
+   `assets/ambient.js` (with `defer`; it steps the nebula at 2 fps so the glass is not
+   re-blurred 60 times a second), `assets/build.py` (or its logic) for the version footer, `assets/shoot.mjs` for
    screenshots, `assets/favicon.svg` as the icon template.
 2. **Pick the tool's own colour** and set only `--accent`, `--accent-ink`,
    `--accent-soft` and the three `--nebula-*` tints, in light and both dark blocks. Keep
@@ -31,7 +32,7 @@ already there. Start from the files in `assets/`; do not restyle from scratch.
 3. **Lay out the page** with the shared skeleton (`references/layout.md`): sticky
    frosted top bar (brand mark + lowercase name + status pill left; search; primary
    pill; round chips for language, theme, `?`), a filter row of segmented controls and
-   chips, glass cards, a footer with the version.
+   chips, translucent cards, a footer with the version.
 4. **Ship the baseline features** in `references/defaults.md`. They are not optional
    extras: each one was asked for in more than one tool.
 5. **Avoid the known pitfalls** in `references/pitfalls.md` (stale answers painting over
@@ -53,6 +54,10 @@ already there. Start from the files in `assets/`; do not restyle from scratch.
 - Do not encode the theme only in the media query: the manual choice
   (`data-theme`) must win in both directions, so dark values live in two blocks.
 - Reduced motion: stop the nebula, pulses, shimmer and canvas physics, in CSS and JS.
+- GPU at rest: open the page on a Retina screen and check Chrome's GPU process in
+  Activity Monitor (or `ioreg -r -d 1 -c IOAccelerator`, "Device Utilization %"). A
+  drift without `data-ambient`, an infinite animation on `box-shadow` or `margin`, or a
+  canvas loop that never idles keeps it busy all day (`references/tokens.md`, Motion).
 
 ## References
 

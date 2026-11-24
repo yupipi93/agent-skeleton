@@ -12,13 +12,14 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <script src="/theme.js"></script>
 <script src="/i18n.js"></script>
+<script src="/ambient.js" defer></script>
 <link rel="stylesheet" href="/house.css">
 </head>
 <body>
-<div class="nebula" aria-hidden="true"></div>
+<div class="nebula" data-ambient aria-hidden="true"></div>
 <div class="app">
   <header class="top">
-    <a class="brand" href="/"><span class="mark" aria-hidden="true"></span><span class="brand-name">tool</span>
+    <a class="brand" href="/"><span class="mark" data-ambient="live" aria-hidden="true"></span><span class="brand-name">tool</span>
       <span id="status" class="status" role="status">live</span></a>
     <label class="search"><input id="q" type="search" placeholder="Search" aria-label="Search"><kbd aria-hidden="true">/</kbd></label>
     <div class="tools">

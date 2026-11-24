@@ -43,4 +43,19 @@ Accent colours already taken in the family (pick another for a new tool): pink-r
 - Press: `transform: scale(.95)` over `.12s`. Hover: `filter: var(--hover)`
   (`brightness(.96)` light, `1.15` dark).
 - Living details: the brand mark pulses or breathes; the nebula drifts over 48 s.
+- GPU budget: an idle page costs almost nothing. With glass on screen, any moving pixel
+  makes the browser re-blur every glass panel, so a 7 px pulse costs as much as the
+  nebula. Hence:
+  - the nebula carries `data-ambient`: `assets/ambient.js` steps it at 2 frames a second
+    (same keyframes and easing) and freezes it while the window is unfocused;
+  - small living details (brand mark, live dot) carry `data-ambient="live"`: full rate
+    while focused, paused when the window is unfocused or the tab hidden;
+  - glass only where content passes beneath it (sticky top bar, dialogs, menus, toasts):
+    a control or card that sits only over the nebula keeps its translucent fill without
+    `backdrop-filter`, because blurring a smooth gradient shows the same picture;
+  - infinite animations touch only `transform` and `opacity`, never `margin`,
+    `top`/`bottom`, `width`, `box-shadow`, `mask-position` or `background-position`
+    (a non-composited one repaints the whole document every frame): a box-shadow ring
+    becomes a pseudo-element scaled and faded;
+  - canvas loops draw only while something moves and drop their rate when unfocused.
 - `prefers-reduced-motion: reduce` stops all of it.
