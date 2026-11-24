@@ -27,17 +27,17 @@ bin/skeleton enable style
 |---|---|
 | `kit/bundles/style/scripts/ai-tells.py` | Flag the tells in a draft: HARD (chatbot artifacts, placeholders, em dash, cutoff lines, sycophantic openers), WARN (puffery, not-X-but-Y, participle tails, weasel words, AI-vocabulary density, Title Case headings, inline-header lists, uniform sentence length) |
 
-| `kit/bundles/style/scripts/text-budget.py` | Block a draft longer than its kind allows (chat 200 characters, comment 250, email 450, PR and ticket 500, reply 600, voice 900, ...); code, URLs and Markdown markup are not counted |
+| `kit/bundles/style/scripts/text-budget.py` | Keep a draft as short as possible: warn over its kind's target (chat 80 characters, comment 120, email 250, PR, ticket and reply 300, voice 500) and block over the maximum (chat 200, comment 250, email 450, PR and ticket 500, reply 600, voice 900); code, URLs and Markdown markup are not counted |
 
 ```bash
 kit/bundles/style/scripts/ai-tells.py draft.md            # exit 0 clean, 1 warnings, 2 hard
 kit/bundles/style/scripts/ai-tells.py --lang es draft.md  # Spanish word lists only
-kit/bundles/style/scripts/text-budget.py --kind chat draft.md  # exit 0 ok, 2 over budget
-kit/bundles/style/scripts/text-budget.py --list           # budgets in force
+kit/bundles/style/scripts/text-budget.py --kind chat draft.md  # exit 0 ok, 1 over target, 2 over max
+kit/bundles/style/scripts/text-budget.py --list           # targets and maximums in force
 ```
 
-Budgets are overridden per kind with `TEXT_BUDGET_<KIND>` in the environment or in
-`~/.config/agent-skeleton/style.env`, or once with `--max N`.
+Override per kind with `TEXT_TARGET_<KIND>` and `TEXT_BUDGET_<KIND>` (maximum) in the
+environment or in `~/.config/agent-skeleton/style.env`, or the maximum once with `--max N`.
 
 Fenced code, inline code and `>` quotes are skipped for prose checks; chatbot artifacts
 are searched everywhere. The format checks target text for people: skills and runbooks
