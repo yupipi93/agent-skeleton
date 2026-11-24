@@ -46,8 +46,9 @@ when the user prefers typing native `*bold*` / `<url|text>`.
 
 - **The recipient's language**, not the language of your conversation with the user.
   Offer a second-language variant when the audience is mixed.
-- **Short**: aim for 150 words or fewer per message. Detail belongs in the linked doc.
-  Past 200 words, cut before delivering.
+- **Short**: 200 characters per chat message, 450 for an email body
+  (`kit/bundles/style/scripts/text-budget.py --kind chat|email`). Detail belongs in the
+  linked doc. Over budget, cut before delivering.
 - **Real data, not adjectives.** When the agent can inspect the systems involved, put
   the actual number in the message (a coverage percentage, an error count, the one
   blocking dependency). One concrete fact plus one concrete next step.
@@ -147,7 +148,7 @@ Say the page is open and give its path, so the user can reopen it.
 ## Checklist
 
 - [ ] Recipient language right; second-language variant offered if mixed
-- [ ] Each message about 150 words or fewer; detail pushed to the linked doc
+- [ ] Each message within its budget (`text-budget.py`); detail pushed to the linked doc
 - [ ] Personalised with real, verified numbers
 - [ ] Link display text doubles as the identifier
 - [ ] No credentials, tokens or internal-only endpoints (the script's guard passed)

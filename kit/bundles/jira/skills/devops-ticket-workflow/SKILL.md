@@ -93,8 +93,9 @@ board or repo names one. The PR text passes the gate too. Return the PR URL.
 ## 8. Close the loop
 
 1. **Comment** the outcome through the gate with `jira-comment.py`. If the board has
-   `public_comments = true`: short, outcome and user-facing link only, no PR links or
-   internals. Otherwise the PR link and a short technical note are fine.
+   `public_comments = true`: outcome and user-facing link only, no PR links or
+   internals. Otherwise the PR link and a short technical note are fine. Either way
+   250 characters at most (`kit/bundles/style/scripts/text-budget.py --kind comment`).
 2. **Transition**: `jira-transition.sh PROJ-123 --to Done` once the work is delivered
    (merged and applied, or as the board defines done). Not delivered yet: leave it in
    progress and say what is pending.

@@ -56,7 +56,8 @@ safety net. Write the text as speech:
 
 - **Lead with the conclusion.** The listener may stop after fifteen seconds.
 - **Narrate, do not enumerate.** Join lists into sentences.
-- **One to four minutes.** Longer stops being a summary, unless the user asked for detail.
+- **30 to 60 seconds** (900 characters at most: `kit/bundles/style/scripts/text-budget.py
+  --kind voice`). Longer stops being a summary, unless the user asked for detail.
 - **End with what you need**, plainly: the last sentence is the ask.
 - **Never read commands, paths, hashes, ids, URLs or IP addresses aloud.** Say "the ticket",
   "the PR", "the command is in the chat". They belong in the written reply.

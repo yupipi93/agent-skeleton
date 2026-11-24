@@ -1,6 +1,6 @@
 ---
 name: human-writing
-description: "Write prose that reads like a person wrote it: the AI-writing tells from Wikipedia's Signs of AI writing (vocabulary, puffery, not-X-but-Y, rule of three, formatting, chatbot artifacts) and a checker script. Use when drafting docs, tickets, PRs, emails or messages, or when a draft sounds AI-written."
+description: "Write short prose that reads like a person wrote it: AI-writing tells from Wikipedia's Signs of AI writing, character budgets per kind of text, two checker scripts. Use when drafting docs, tickets, PRs, emails or messages, or when a draft sounds AI-written or long."
 ---
 
 # Human writing
@@ -53,6 +53,35 @@ The full catalogue, section by section, is in
 13. **Keep the human texture.** Contractions in informal text, `very` and `perhaps` where
     they fit, an occasional `in order to`. Do not scrub prose into telegraphese, and do
     not fake typos or slang to look human.
+14. **Write it short.** A person writes the two lines that matter; a machine writes the
+    twenty around them. Readers lose the thread past a few lines, so keep the ask and
+    the facts and link the rest.
+
+## Length budget
+
+Every kind of text has a character budget. `text-budget.py` counts only what a person
+reads (fenced code, URLs and Markdown markup are free) and exits 2 over it:
+
+| Kind | Budget | Kind | Budget |
+|---|---|---|---|
+| `chat` (Chat, Teams, Slack) | 200 | `email` (body) | 450 |
+| `notify` (push) | 160 | `pr` (body) | 500 |
+| `comment` (ticket, PR) | 250 | `ticket` (description) | 500 |
+| `commit` (subject + body) | 250 | `post` (social, announcement) | 600 |
+| `reply` (agent to its user) | 600 | `voice` (spoken, ~1 min) | 900 |
+
+Override per kind with `TEXT_BUDGET_<KIND>` in the environment or in
+`~/.config/agent-skeleton/style.env`, or once with `--max N` when the user asked for a
+long text (a report, a "con detalle" summary). Docs and READMEs have no budget, but the
+same habit applies: one idea per paragraph, delete what does not change a decision.
+
+How to cut, in order:
+
+1. Delete what the reader already knows or does not need to act: background, how it was
+   found, who said what, the steps you took.
+2. Move detail to the ticket, PR or doc and put the link in the text.
+3. One fact per line; numbers instead of adjectives.
+4. Several unrelated points: several short messages, not one long one.
 
 ## Steps
 
@@ -67,7 +96,9 @@ The full catalogue, section by section, is in
 
    Exit 0 is clean (or notes only), 1 means warnings to rewrite, 2 means a HARD finding
    (chatbot artifact, placeholder, em dash, knowledge-cutoff line, sycophantic opener).
-3. Fix every HARD finding. Rewrite each WARN using the table below; a warning you keep
+   Then the length: `kit/bundles/style/scripts/text-budget.py --kind chat draft.md`
+   (exit 2 means cut, see "Length budget").
+3. Fix every HARD finding and every budget overrun. Rewrite each WARN using the table below; a warning you keep
    needs a reason (a quoted title, a product name in a heading).
 4. Read the text once as the recipient. Would a colleague write this sentence in this
    channel? If it sounds like a brochure or a support bot, cut it.
@@ -91,6 +122,7 @@ The full catalogue, section by section, is in
 ## Self-check before sending
 
 - Does the first sentence say the thing?
+- Within its budget (`text-budget.py`)?
 - Could any sentence be deleted without losing a fact? Delete it.
 - Any word from the vocabulary list where a plain one works?
 - Any `not X but Y`, triad, or participle tail (`..., highlighting ...`)?

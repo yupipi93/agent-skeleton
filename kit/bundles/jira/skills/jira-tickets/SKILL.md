@@ -67,11 +67,13 @@ a Task and link it with `jira-link.sh NEW-KEY PARENT-KEY --type Relates`, and sa
 
 ## Description template (visual)
 
-Descriptions render to ADF with headings, tables, lists and emojis. Keep it scannable:
+Descriptions render to ADF with headings, tables, lists and emojis. Keep it scannable and
+within 500 characters of prose (`kit/bundles/style/scripts/text-budget.py --kind ticket
+desc.md`; tables and code count only for their text, so prefer a table to sentences):
 
 ```markdown
 ## 🎯 Objective
-What and why, two to four sentences. **Bold** the key decision.
+What and why, one or two sentences. **Bold** the key decision.
 
 ## 📌 Current state
 - ✅ what exists
@@ -135,7 +137,8 @@ When work tied to a ticket is delivered (merged, applied, verified):
    `jira-search.sh 'project = PROJ AND summary ~ "keyword" AND statusCategory != Done ORDER BY updated DESC' --max 5`,
    let the user pick, or propose a new one (flow above).
 2. **Comment** the outcome after the gate: `jira-comment.py PROJ-123 --comment-file outcome.md`.
-   With `public_comments = true` on the board: short, a couple of emojis, the outcome and
+   Every comment stays within 250 characters (`text-budget.py --kind comment`).
+   With `public_comments = true` on the board: a couple of emojis, the outcome and
    any user-facing link only; no PR or commit links, internals or how it was solved.
    Internal boards can carry the PR link and a short technical note.
 3. **Transition**: `jira-transition.sh PROJ-123 --to Done`, or to the `waiting` status if

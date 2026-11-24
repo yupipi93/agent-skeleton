@@ -14,8 +14,9 @@ before finishing:
 kit/bundles/voice/scripts/voice-note.py --source <TAG> --title "<short title>" "<spoken summary>"
 ```
 
-- Write it for the ear (skill `voice-summary`): conclusion first, narrated, one to four
-  minutes, ending with what you need from the user.
+- Write it for the ear (skill `voice-summary`): conclusion first, narrated, 30 to 60
+  seconds (900 characters at most, `text-budget.py --kind voice`), ending with what you
+  need from the user. Longer only when the user asked for detail.
 - Never read commands, paths, hashes or ids aloud. A command for the user goes to the
   channel with `notify.sh --code-only` **and** into your reply as a fenced block.
 - The note goes to the local voice hub (the default). Paste the `Markdown:` hub link it

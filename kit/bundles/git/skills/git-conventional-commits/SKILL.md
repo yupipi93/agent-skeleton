@@ -72,7 +72,8 @@ Use both when extra clarity is useful.
 
 ## Body and Footer Guidance
 
-Add a body when context is necessary:
+Add a body only when the subject cannot carry the context, and keep subject plus body
+within 250 characters (`kit/bundles/style/scripts/text-budget.py --kind commit msg.txt`):
 
 - Why the change was needed.
 - Trade-offs or migration notes.

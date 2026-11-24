@@ -42,16 +42,16 @@ usage() { awk 'NR > 2 && /^#/ { sub(/^# ?/, ""); print; next } NR > 2 { exit }' 
 template() {
   cat <<'EOF'
 ## Summary
-What changed and why, in two or three sentences.
+What changed and why, one or two lines. Link the ticket.
 
 ## Changes
-- Concrete list of edits
+- One line per edit that matters
 
 ## Validation
-- How it was verified (tests, plan output, manual checks)
+- How it was verified (tests, plan counts), one line
 
 ## Rollback
-- How to revert safely
+- How to revert, one line
 EOF
 }
 
