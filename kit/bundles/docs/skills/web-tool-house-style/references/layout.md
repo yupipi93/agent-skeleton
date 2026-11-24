@@ -8,7 +8,7 @@
 ├───────────────────────────────┬──────────────────────────────────────────┤
 │ EYEBROW                       │  detail / sheet                           │
 │ 42  thin hero number · context│  title 24px · meta tags                   │
-│ ── cards (glass, 18px) ──     │  📌 what needs you (accent box with edge) │
+│ ── cards (translucent, 18px) ──     │  📌 what needs you (accent box with edge) │
 │                               │  main content                             │
 │ tool · release N · abc1234    │  primary actions …………… quiet actions      │
 └───────────────────────────────┴──────────────────────────────────────────┘
@@ -26,7 +26,7 @@ Where things go:
   searchable popover. A filter row never wraps to three lines on a phone: it scrolls.
 - **Hero**: the one number the tool exists for (pending, cost, tickets waiting), thin
   and big, with one line of context.
-- **Cards**: glass, the item's state as an accent edge or dot, controls on the right,
+- **Cards**: translucent (no backdrop blur over the nebula), the item's state as an accent edge or dot, controls on the right,
   48 px-ish targets on touch screens.
 - **"What needs you" first**: anything the user must act on sits above the content, in
   an accent-soft box with an eyebrow label.

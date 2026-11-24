@@ -22,4 +22,5 @@ the start.
 | A query parameter comes back on reload or Back | Apply once, then `history.replaceState` |
 | Background service throttled by the OS | Interactive or standard process priority, idle back-off |
 | Unread request body breaks keep-alive | Always drain the body; validate `Content-Length` |
+| An idle page holds the GPU at 50-100 % (an animated background under `backdrop-filter` glass re-blurs every panel 60 times a second; worse on a 5K screen) | `data-ambient` + `assets/ambient.js` on slow drifts, `data-ambient="live"` on pulses; glass only where content passes beneath; infinite animations on `transform`/`opacity` only; canvas loops idle when nothing moves. Measure Chrome's GPU process with the page open, not just the look |
 | Untrusted text in `innerHTML` | Escape every interpolated value; allow-list inline markup |
