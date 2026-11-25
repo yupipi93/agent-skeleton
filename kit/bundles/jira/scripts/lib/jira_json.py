@@ -280,6 +280,8 @@ def create_payload(env):
         fields["priority"] = {"name": env["PRIORITY"]}
     if env.get("PARENT"):
         fields["parent"] = {"key": env["PARENT"]}
+    if env.get("DUE_DATE"):
+        fields["duedate"] = env["DUE_DATE"]
     labels = [x for x in env.get("LABELS", "").split("\n") if x.strip()]
     if labels:
         fields["labels"] = labels

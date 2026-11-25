@@ -18,6 +18,7 @@
 #   --reporter-email EMAIL resolve a reporter by email (falls back to the default)
 #   --request-type ID      service desk request type id, sent in JIRA_REQUEST_TYPE_FIELD
 #   --priority NAME        e.g. Low, Medium, High
+#   --due-date YYYY-MM-DD  the standard Jira "Due date" field
 #   --parent KEY           parent issue (sub-tasks, or child issues of an epic)
 #   --label NAME           repeatable
 #   --em-dash              also block U+2014 (house style)
@@ -39,7 +40,7 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 usage() { awk 'NR > 2 && /^#/ { sub(/^# ?/, ""); print; next } NR > 2 { exit }' "$0"; }
 
 PROJECT="" ISSUETYPE="" SUMMARY="" DESCRIPTION="" DESC_FILE="" ASSIGNEE="" ASSIGNEE_SET=0
-REPORTER="" REPORTER_EMAIL="" REQUEST_TYPE="" PRIORITY="" PARENT="" LABELS="" DRY_RUN=0
+REPORTER="" REPORTER_EMAIL="" REQUEST_TYPE="" PRIORITY="" PARENT="" LABELS="" DUE_DATE="" DRY_RUN=0
 GUARD_ARGS=""
 
 while [ $# -gt 0 ]; do
@@ -55,6 +56,7 @@ while [ $# -gt 0 ]; do
     --request-type) atl_need_value "$1" $#; REQUEST_TYPE="$2"; shift 2 ;;
     --priority) atl_need_value "$1" $#; PRIORITY="$2"; shift 2 ;;
     --parent) atl_need_value "$1" $#; PARENT="$2"; shift 2 ;;
+    --due-date) atl_need_value "$1" $#; DUE_DATE="$2"; shift 2 ;;
     --label) atl_need_value "$1" $#; LABELS="${LABELS}${2}
 "; shift 2 ;;
     --em-dash) GUARD_ARGS="--em-dash"; shift ;;
@@ -63,6 +65,10 @@ while [ $# -gt 0 ]; do
     *) echo "error: unknown argument $1" >&2; exit 2 ;;
   esac
 done
+
+if [ -n "$DUE_DATE" ] && ! printf '%s' "$DUE_DATE" | grep -Eq '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
+  echo "error: --due-date must be YYYY-MM-DD" >&2; exit 2
+fi
 
 if [ -n "$DESC_FILE" ]; then
   [ -r "$DESC_FILE" ] || { echo "error: cannot read --description-file $DESC_FILE" >&2; exit 2; }
@@ -118,7 +124,7 @@ fi
 
 PROJECT="$PROJECT" ISSUETYPE="$ISSUETYPE" SUMMARY="$SUMMARY" DESCRIPTION="$DESCRIPTION" \
 DESCRIPTION_FILE="$DESC_FILE" ASSIGNEE="$ASSIGNEE" REPORTER="$REPORTER" \
-REQUEST_TYPE="$REQUEST_TYPE" PRIORITY="$PRIORITY" PARENT="$PARENT" LABELS="$LABELS" \
+REQUEST_TYPE="$REQUEST_TYPE" PRIORITY="$PRIORITY" PARENT="$PARENT" LABELS="$LABELS" DUE_DATE="$DUE_DATE" \
   python3 "$ATL_JSON" create-payload >"$ATL_TMPDIR/payload.json"
 
 if [ "$DRY_RUN" -eq 1 ]; then
