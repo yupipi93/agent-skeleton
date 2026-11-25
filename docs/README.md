@@ -24,7 +24,7 @@ dependencies: [bundles index](bundles/README.md).
 | 🎫 | [jira](bundles/jira.md) | 🍎 | [mac](bundles/mac.md) |
 | 🏗️ | [terraform](bundles/terraform.md) | 🎧 | [voice](bundles/voice.md) |
 | ☁️ | [gcp](bundles/gcp.md) | 📬 | [google](bundles/google.md) |
-| ✒️ | [style](bundles/style.md) | | |
+| ✒️ | [style](bundles/style.md) | 🧭 | [context](bundles/context.md) |
 
 ## Tools
 

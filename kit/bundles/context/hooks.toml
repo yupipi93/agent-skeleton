@@ -1,0 +1,11 @@
+# Hooks of the context bundle. Rendered per tool by `bin/skeleton init`.
+# Cursor's beforeSubmitPrompt cannot add context and Antigravity has no prompt event:
+# there the rule context-recon-first is the whole mechanism.
+
+[[hook]]
+id = "context-recon"
+event = "prompt_submit"
+run = "scripts/ctx-hook.sh"
+timeout_s = 8
+tools = ["claude", "gemini"]
+description = "Adds pointers from the local knowledge index (memory, notes, docs, past sessions) for the prompt"

@@ -42,6 +42,9 @@ brew "ffmpeg"       # audio conversion for voice notes
 # group: loops
 # No extra dependencies.
 
+# group: context
+# Uses python3 (3.11 or newer, from the core group) only.
+
 # group: mac
 # No extra dependencies.
 

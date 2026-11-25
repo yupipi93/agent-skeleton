@@ -51,6 +51,9 @@ A gate whose bundle is disabled is not loaded; follow the intent anyway when the
 
 ## Working style
 
+- **Context first** (rule `context-recon-first`): before answering or acting, read what the
+  workspace already knows, as deep as the task needs. A prompt hook adds pointers from the
+  local index; search it with `kit/bundles/context/scripts/ctx.py search "<terms>"`.
 - Bias for action: research, implement and validate end to end without asking for routine
   permission. Run the relevant checks (tests, linters, `bin/skeleton check`) before reporting.
 - Ask **one focused question only when a requirement is critically underspecified**. When

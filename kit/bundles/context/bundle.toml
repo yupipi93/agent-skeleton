@@ -1,0 +1,11 @@
+name = "context"
+title = "Context recon"
+emoji = "🧭"
+description = "One local index over memory, notes, docs, wikis, past sessions and app stores, a prompt hook that hands each task its pointers, and the recon-first method."
+version = "0.1.0"
+default_enabled = true
+requires = ["core"]
+brew = []
+commands = ["python3"]
+optional_commands = []
+config_files = ["~/.config/agent-skeleton/context.toml"]

@@ -24,5 +24,6 @@ docs = true
 voice = false
 google = false
 loops = true
+context = true
 mac = true
 style = false
