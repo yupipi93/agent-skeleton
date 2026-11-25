@@ -246,10 +246,15 @@ class WriteScriptsTest(ScriptCase):
         desc = self.tmp / "desc.md"
         desc.write_text("## Objective\n\n| a | b |\n|---|---|\n| 1 | 2 |\n")
         proc = self.run_script("jira-create.sh", "--summary", "[api] Rotate cert", "--description-file",
-                               str(desc), "--request-type", "10", "--label", "infra", "--dry-run")
+                               str(desc), "--request-type", "10", "--label", "infra",
+                               "--due-date", "2026-12-17", "--dry-run")
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("POST https://%s/rest/api/3/issue" % SITE, proc.stdout)
         payload = json.loads(proc.stdout[proc.stdout.index("{"):])["fields"]
+        self.assertEqual(payload["duedate"], "2026-12-17")
+        bad = self.run_script("jira-create.sh", "--summary", "x", "--description", "y",
+                              "--due-date", "17/12/2026", "--dry-run")
+        self.assertEqual(bad.returncode, 2)
         self.assertEqual(payload["project"], {"key": "PROJ"})
         self.assertEqual(payload["issuetype"], {"name": "Task"})
         self.assertEqual(payload["assignee"], {"accountId": "acc-1"})
