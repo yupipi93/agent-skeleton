@@ -14,6 +14,7 @@ see what is on with `bin/skeleton list`.
 | ☁️ | [gcp](gcp.md) | on | 6 | 1 | | | gcloud identity routing, IAP as the real caller, deploy checks, billing report |
 | 📝 | [docs](docs.md) | on | 5 | | | | Mermaid house style, print-ready PDF, rich-paste chat messages, plan to docs |
 | 🔁 | [loops](loops.md) | on | 2 | | | | Loop engineering and `/loopify` |
+| 🧭 | [context](context.md) | on | 1 | 1 | 1 | | One knowledge index, a prompt hook with pointers per task, recon before action |
 | 🍎 | [mac](mac.md) | on | 1 | | | | Install, check and repair the kit on macOS |
 | 🎧 | [voice](voice.md) | off | 3 | 1 | 1 | `setup voice` | Spoken summaries, text notifications, the Stop hook, the local voice hub |
 | 📬 | [google](google.md) | off | 3 | | | `setup google` | Google Chat, Docs and Gmail (read-only) through your own OAuth client |

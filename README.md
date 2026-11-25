@@ -46,6 +46,7 @@
 | 🏗️ | **terraform** | *The agent plans, you apply.* Plan summaries with destroys and replaces first, copy-paste `-target` sets, import and state traps, a YAML-settings template. | ✅ on | [terraform](docs/bundles/terraform.md) |
 | ☁️ | **gcp** | The right `gcloud` account per project, IAP smoke tests as the real caller, Cloud Run deploy checks, and a self-checking billing report PDF. | ✅ on | [gcp](docs/bundles/gcp.md) |
 | 📝 | **docs** | One Mermaid house style with templates, print-ready HTML to PDF, rich-paste chat messages, and `/docs-plan-to-docs`. | ✅ on | [docs](docs/bundles/docs.md) |
+| 🧭 | **context** | *Context before action.* One local index over memory, notes, repo docs and past sessions; a prompt hook hands every task its pointers, and a rule sets how deep to look before answering. | ✅ on | [context](docs/bundles/context.md) |
 | 🔁 | **loops** | *Write loops, not prompts.* `/loopify` turns a prompt into a loop spec with a separate verifier, `STATE.md` and human gates. | ✅ on | [loops](docs/bundles/loops.md) |
 | 🍎 | **mac** | One command installs and checks everything: Brewfile groups per enabled bundle, then `init` and `doctor`. | ✅ on | [mac](docs/bundles/mac.md) |
 | 🎧 | **voice** | Agents that say who they are (*"Hi Ana, this is the payments agent, about Terraform."*), spoken summaries played in a local voice hub (Telegram or Google Chat if you opt in), a Stop hook across all four tools. | ⬜ off | [voice](docs/bundles/voice.md) |

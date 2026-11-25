@@ -1,0 +1,99 @@
+# Knowledge sources of the context bundle (generic defaults).
+#
+# ctx.py merges this file with local/bundles/<bundle>/context/sources.toml and
+# ~/.config/agent-skeleton/context.toml. A later [[source]] with the same id replaces this
+# one; `enabled = false` removes it.
+#
+# Common keys: id, label (shown in pointers), kind, roots, weight, priority, enabled.
+#   files:            include / exclude (globs on the relative path or the file name),
+#                     max_depth (12), max_file_kb (512), title_prefix_dirs (true: the
+#                     folder goes in the title).
+#   claude-sessions:  exclude_dirs (globs on project dir names), min_kb (8), skip_prompts.
+#   sqlite:           db, query.
+#   command:          run, timeout_s (20), max_chars (3000).
+#
+# Top-level `ticket_prefixes = ["PROJ", "OPS"]` (in any file) limits what counts as a
+# ticket key; without it, technical tokens shaped like keys (UTF-8, SHA-256) are skipped.
+# Paths expand ~, {repo} (this workspace) and {claude_config} ($CLAUDE_CONFIG_DIR or ~/.claude).
+#
+# Kinds:
+#   files            Markdown and text under `roots` (globs, ~ and {repo} expanded),
+#                    filtered by `include` / `exclude` globs, chunked by heading.
+#   claude-sessions  Claude Code transcripts (JSONL): title, first prompts, last answer.
+#   sqlite           Rows of `query` (columns id, title, body, date, optional url) in `db`.
+#   command          Live source, never indexed: `run` argv with {q} replaced by the terms;
+#                    used by `ctx.py live`.
+#
+# An overlay entry with `extend = true` merges into the source of the same id instead of
+# replacing it: lists are appended, other keys overridden.
+#
+# Ranking keys: downweight_sections (title substrings, e.g. "Transcript", scored at
+# `downweight`, default 0.35), weight (multiplier, default 1), half_life_days and recency_boost (newer
+# documents rank higher), priority (files sources claim a file in ascending order, so a
+# file indexed by a specific source is not indexed again by a broad one).
+
+[[source]]
+id = "memory"
+label = "agent memory"
+kind = "files"
+roots = ["{claude_config}/projects/*/memory"]
+include = ["*.md"]
+exclude = ["MEMORY.md"]
+weight = 1.6
+half_life_days = 45
+priority = 10
+
+[[source]]
+id = "workspace"
+label = "workspace docs"
+kind = "files"
+roots = ["{repo}/AGENTS.md", "{repo}/README.md", "{repo}/docs", "{repo}/plans"]
+include = ["*.md"]
+weight = 1.0
+priority = 20
+
+[[source]]
+id = "skills"
+label = "skills and rules"
+kind = "files"
+roots = ["{repo}/kit/bundles", "{repo}/local/bundles"]
+include = ["*/SKILL.md", "*/references/*.md", "*/rules/*.md"]
+exclude = ["*/workspace/*", "*/node_modules/*"]
+max_depth = 6
+weight = 0.7
+priority = 30
+
+[[source]]
+id = "repos"
+label = "repo docs"
+kind = "files"
+roots = ["{repo}/projects/*"]
+include = ["README.md", "AGENTS.md", "CLAUDE.md", "BACKLOG.md", "TODO.md",
+           "docs/*", "*/docs/*", "*/README.md", "*/AGENTS.md", "*/BACKLOG.md", "adr/*", "*/adr/*"]
+# vendored upstream docs sites and archives drown the project's own docs
+exclude = ["*/my-website/*", "*/docusaurus/*", "*/archive/*", "*/examples/*", "*/test*/*",
+           "*/fixtures/*", "*/third_party/*"]
+max_depth = 6
+max_file_kb = 400
+weight = 0.9
+priority = 90
+
+[[source]]
+id = "sessions"
+label = "past agent session"
+kind = "claude-sessions"
+roots = ["{claude_config}/projects"]
+# automation runs and scratch directories are noise
+exclude_dirs = ["-", "*-private-tmp-*", "*-local-state-*"]
+# sessions whose first prompt matches one of these regexes are automation, not work
+skip_prompts = []
+weight = 1.1
+half_life_days = 21
+recency_boost = 1.5
+
+[[source]]
+id = "jira"
+label = "Jira"
+kind = "command"
+run = ["{repo}/kit/bundles/jira/scripts/jira-search.sh", "text ~ \"{q}\" ORDER BY updated DESC", "--max", "8"]
+timeout_s = 20
